@@ -1,13 +1,13 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
 Description: 'Amazon EKS Node Group'
-Metadata: 
-  AWS::CloudFormation::Interface: 
-    ParameterGroups: 
-      - 
-        Label: 
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      -
+        Label:
           default: "EKS Configuration"
-        Parameters: 
+        Parameters:
           - VpcId
           - KeyName
           - NodeImageId
@@ -19,10 +19,10 @@ Metadata:
           - UseExistingNodeSecurityGroups
           - ExistingNodeSecurityGroups
           - Subnets
-      - 
-        Label: 
+      -
+        Label:
           default: "Auto Scaling Configuration"
-        Parameters: 
+        Parameters:
           - NodeAutoScalingGroupMinSize
           - NodeAutoScalingGroupDesiredSize
           - NodeAutoScalingGroupMaxSize
@@ -32,13 +32,15 @@ Metadata:
           - OnDemandPercentageAboveBaseCapacity
           - SpotInstancePools
           - InstanceTypesOverride
-      - 
-        Label: 
+      -
+        Label:
           default: "Advanced"
-        Parameters: 
+        Parameters:
           - TargetGroupPort
 
 Mappings:
+  # Leaving this here as its a good idea to use a lambda to produce a mapping of the latest ami per region that is published
+  # to s3 and can be used within the template.
   AMIMap:
     'Fn::Transform':
       Name: 'AWS::Include'
@@ -64,9 +66,9 @@ Parameters:
     Default: 31742
 
   NodeImageId:
-    Type: String
-    Default: ""
-    Description: Specify AMI id for the node instances. Leave it blank if you preferred the latest EKS-optimized AMI
+    Description: AMI id for the node instances.
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/eks/ami-eks-optimzed-latest'
 
   NodeInstanceType:
     Description: Default EC2 instance type for the node instances.
@@ -76,83 +78,6 @@ Parameters:
     - t2.small
     - t2.medium
     - t2.large
-    - t2.xlarge
-    - t2.2xlarge
-    - t3.nano
-    - t3.micro
-    - t3.small
-    - t3.medium
-    - t3.large
-    - t3.xlarge
-    - t3.2xlarge
-    - m3.medium
-    - m3.large
-    - m3.xlarge
-    - m3.2xlarge
-    - m4.large
-    - m4.xlarge
-    - m4.2xlarge
-    - m4.4xlarge
-    - m4.10xlarge
-    - m5.large
-    - m5.xlarge
-    - m5.2xlarge
-    - m5.4xlarge
-    - m5.12xlarge
-    - m5.24xlarge
-    - c4.large
-    - c4.xlarge
-    - c4.2xlarge
-    - c4.4xlarge
-    - c4.8xlarge
-    - c5.large
-    - c5.xlarge
-    - c5.2xlarge
-    - c5.4xlarge
-    - c5.9xlarge
-    - c5.18xlarge
-    - i3.large
-    - i3.xlarge
-    - i3.2xlarge
-    - i3.4xlarge
-    - i3.8xlarge
-    - i3.16xlarge
-    - r3.xlarge
-    - r3.2xlarge
-    - r3.4xlarge
-    - r3.8xlarge
-    - r4.large
-    - r4.xlarge
-    - r4.2xlarge
-    - r4.4xlarge
-    - r4.8xlarge
-    - r4.16xlarge
-    - x1.16xlarge
-    - x1.32xlarge
-    - p2.xlarge
-    - p2.8xlarge
-    - p2.16xlarge
-    - p3.2xlarge
-    - p3.8xlarge
-    - p3.16xlarge
-    - r5.large
-    - r5.xlarge
-    - r5.2xlarge
-    - r5.4xlarge
-    - r5.12xlarge
-    - r5.24xlarge
-    - r5d.large
-    - r5d.xlarge
-    - r5d.2xlarge
-    - r5d.4xlarge
-    - r5d.12xlarge
-    - r5d.24xlarge
-    - z1d.large
-    - z1d.xlarge
-    - z1d.2xlarge
-    - z1d.3xlarge
-    - z1d.6xlarge
-    - z1d.12xlarge
     ConstraintDescription: must be a valid EC2 instance type.
 
   NodeAutoScalingGroupMinSize:
@@ -164,7 +89,7 @@ Parameters:
     Type: Number
     Description: Desired size of Node Group ASG.
     Default: 2
-    
+
   NodeAutoScalingGroupMaxSize:
     Type: Number
     Description: Maximum size of Node Group ASG.
@@ -177,7 +102,6 @@ Parameters:
       - "yes"
       - "no"
     Default: "yes"
-
 
   OnDemandBaseCapacity:
     Type: Number
@@ -236,7 +160,7 @@ Parameters:
 Conditions:
   PreferredDefaultAMI: !Equals [ !Ref NodeImageId, "" ]
   IsASGAutoAssignPublicIp: !Equals [ !Ref ASGAutoAssignPublicIp , "yes" ]
-  AttachExistingNodeSG: !Equals [ !Ref UseExistingNodeSecurityGroups, "yes" ] 
+  AttachExistingNodeSG: !Equals [ !Ref UseExistingNodeSecurityGroups, "yes" ]
   CreateNewNodeSG: !Equals [ !Ref UseExistingNodeSecurityGroups, "no" ]
 
 
@@ -373,7 +297,7 @@ Resources:
     Properties:
       DesiredCapacity: !Ref NodeAutoScalingGroupDesiredSize
       #LaunchConfigurationName: !Ref NodeLaunchConfig
-      # LaunchTemplate: 
+      # LaunchTemplate:
       #   LaunchTemplateId: !Ref MyLaunchTemplate
       #   Version: !GetAtt MyLaunchTemplate.LatestVersionNumber
       MixedInstancesPolicy:
@@ -385,18 +309,18 @@ Resources:
           SpotInstancePools: !Ref SpotInstancePools
           # SpotMaxPrice: String
         LaunchTemplate:
-          LaunchTemplateSpecification: 
+          LaunchTemplateSpecification:
             LaunchTemplateId: !Ref MyLaunchTemplate
             # LaunchTemplateName: String
             Version: !GetAtt MyLaunchTemplate.LatestVersionNumber
-          Overrides: 
+          Overrides:
             - InstanceType: !Select [0, !Split [ ",", !Ref InstanceTypesOverride ] ]
             - InstanceType: !Select [1, !Split [ ",", !Ref InstanceTypesOverride ] ]
             - InstanceType: !Select [2, !Split [ ",", !Ref InstanceTypesOverride ] ]
 
       MinSize: !Ref NodeAutoScalingGroupMinSize
       MaxSize: !Ref NodeAutoScalingGroupMaxSize
-      TargetGroupARNs: 
+      TargetGroupARNs:
         - !Ref TG
       VPCZoneIdentifier:
         !Ref Subnets
@@ -420,10 +344,10 @@ Resources:
     Type: AWS::EC2::LaunchTemplate
     Properties:
       LaunchTemplateName: !Sub "eksLaunchTemplate-${AWS::StackName}"
-      LaunchTemplateData: 
-        # SecurityGroupIds: 
+      LaunchTemplateData:
+        # SecurityGroupIds:
         #   - !Ref NodeSecurityGroup
-        TagSpecifications: 
+        TagSpecifications:
           -
             ResourceType: instance
             Tags:
@@ -433,7 +357,7 @@ Resources:
                 Value: !Ref ClusterName
               - Key: !Sub 'kubernetes.io/cluster/${ClusterName}'
                 Value: 'owned'
-        UserData: 
+        UserData:
           Fn::Base64:
             !Sub |
             #!/bin/bash
@@ -451,11 +375,11 @@ Resources:
                      --stack  ${AWS::StackName} \
                      --resource NodeGroup  \
                      --region ${AWS::Region}
-        IamInstanceProfile: 
+        IamInstanceProfile:
           Arn: !GetAtt NodeInstanceProfile.Arn
         KeyName: !Ref KeyName
-        NetworkInterfaces: 
-          - 
+        NetworkInterfaces:
+          -
             DeviceIndex: 0
             AssociatePublicIpAddress:
               !If
@@ -463,17 +387,17 @@ Resources:
                 - 'true'
                 - 'false'
             SubnetId: !Select [0, !Ref Subnets]
-            Groups: 
+            Groups:
               !If
                 - CreateNewNodeSG
-                - 
+                -
                   - !Ref NodeSecurityGroup
                 - !Split [ ",", !Ref ExistingNodeSecurityGroups ]
-        ImageId: 
+        ImageId:
           !If
             - PreferredDefaultAMI
             - !FindInMap [AMIMap, !Ref "AWS::Region", ami ]
-            - !Ref NodeImageId        
+            - !Ref NodeImageId
         InstanceType: !Ref NodeInstanceType
 
 Outputs:

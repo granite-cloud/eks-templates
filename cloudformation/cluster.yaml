@@ -1,7 +1,21 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'Amazon EKS Control Plane'
+Description: 'EKS Control Plane'
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: EKS Cluster
+        Parameters:
+          - ClusterName
+          - ClusterVersion
+          - Environment
 
+      - Label:
+          default: Import Stacks
+        Parameters:
+          - VPCStackName
+          - ClusterStackName
 Parameters:
   ClusterName:
     Description: The cluster name provided when the cluster was created.  If it is incorrect, nodes will not be able to join the cluster.
@@ -12,58 +26,70 @@ Parameters:
     Type: String
     Default: "latest"
     AllowedValues:
-      - "1.10"
       - "1.11"
       - "1.12"
       - "latest"
-    
-  VpcId:
-    Description: The VPC of the worker instances
-    Type: AWS::EC2::VPC::Id
 
-  SubnetIds:
-    Description: Select 3 subnets where workers can be created.
-    Type: List<AWS::EC2::Subnet::Id>
+  Environment:
+    Description: 'Name of the environment for this stack.'
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+
+  VPCStackName:
+    Description: 'Name of the existing VPC CloudFormation stack to import resources from.'
+    Type: String
+    Default: 'eks-vpc'
 
 Conditions:
-  CreateLatestVersionCluster: !Equals [ !Ref ClusterVersion, latest ]
   CreateCustomVersionCluster: !Not [!Equals [!Ref ClusterVersion, latest]]
-  
+
 Resources:
+  #####
+  # Cluster
+  #####
   EKSCluster:
     Type: "AWS::EKS::Cluster"
     Properties:
       Name: !Ref ClusterName
       ResourcesVpcConfig:
-        SecurityGroupIds: 
+        SecurityGroupIds:
           - !Ref ControlPlaneSecurityGroup
-        SubnetIds: !Ref SubnetIds
+        SubnetIds: !Split
+        - ','
+        - Fn::ImportValue: !Sub '${VPCStackName}-SubnetsPrivate'
       RoleArn: !GetAtt EksServiceRole.Arn
+      # Default version is latest
       Version:
          Fn::If:
           - CreateCustomVersionCluster
           - !Ref ClusterVersion
           - !Ref AWS::NoValue
-        
-      
+
+  #####
+  # Security Groups and IAM
+  #####
   ControlPlaneSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Cluster communication with worker nodes
-      VpcId: !Ref VpcId
-      
+      VpcId:
+        Fn::ImportValue: !Sub '${VPCStackName}-VPCId'
+
   EksServiceRole:
     Type: AWS::IAM::Role
-    Properties: 
-      AssumeRolePolicyDocument: 
+    Properties:
+      AssumeRolePolicyDocument:
         Version: "2012-10-17"
-        Statement: 
-          - 
+        Statement:
+          -
             Effect: "Allow"
-            Principal: 
-              Service: 
+            Principal:
+              Service:
                 - "eks.amazonaws.com"
-            Action: 
+            Action:
               - "sts:AssumeRole"
       Path: "/"
       ManagedPolicyArns:
@@ -72,8 +98,26 @@ Resources:
       RoleName: !Sub "EksSvcRole-${AWS::StackName}"
 
 Outputs:
-  VpcId:
-    Value: !Ref VpcId
-  SecurityGroups:
-    Description: Security group for the cluster control plane communication with worker nodes
-    Value: !Join [ ",", [ !Ref ControlPlaneSecurityGroup ] ]
+  ClusterArn:
+    Description: 'EKS Cluster Arn'
+    Value: !GetAtt EKSCluster.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-EKSClusterArn'
+
+  ClusterEndPoint:
+    Description: 'EKS Cluster EndPoint'
+    Value: !GetAtt EKSCluster.Endpoint
+    Export:
+      Name: !Sub '${AWS::StackName}-EKSClusterEndPoint'
+
+  ClusterName:
+    Description: 'EKS Cluster Name'
+    Value: !Ref EKSCluster
+    Export:
+      Name: !Sub '${AWS::StackName}-EKSClusterName'
+
+  SecurityGroup:
+    Description: Security group for the cluster control plane
+    Value: !Ref ControlPlaneSecurityGroup
+    Export:
+      Name: !Sub '${AWS::StackName}-ControlPlaneSecurityGroup'
