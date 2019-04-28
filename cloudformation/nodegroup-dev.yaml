@@ -4,11 +4,9 @@ Description: 'Amazon EKS Node Group'
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
-      -
-        Label:
+      - Label:
           default: "EKS Configuration"
         Parameters:
-          - VpcId
           - KeyName
           - NodeImageId
           - ClusterName
@@ -18,9 +16,7 @@ Metadata:
           - NodeGroupName
           - UseExistingNodeSecurityGroups
           - ExistingNodeSecurityGroups
-          - Subnets
-      -
-        Label:
+      - Label:
           default: "Auto Scaling Configuration"
         Parameters:
           - NodeAutoScalingGroupMinSize
@@ -31,30 +27,44 @@ Metadata:
           - OnDemandBaseCapacity
           - OnDemandPercentageAboveBaseCapacity
           - SpotInstancePools
-          - InstanceTypesOverride
-      -
-        Label:
+      - Label:
           default: "Advanced"
         Parameters:
           - TargetGroupPort
-
+      - Label:
+          default: Import Stacks
+        Parameters:
+          - VPCStackName
+          - ClusterStackName
 Mappings:
-  # Leaving this here as its a good idea to use a lambda to produce a mapping of the latest ami per region that is published
-  # to s3 and can be used within the template.
-  AMIMap:
-    'Fn::Transform':
-      Name: 'AWS::Include'
-      Parameters:
-        Location: s3://pahud-eks-templates/eks-latest-ami.yaml
-
+  EnvSize:
+    Small:
+      InstanceType: t3.large
+      EBSVolumeSize: 200
+    Medium:
+      InstanceType: t3.xlarge
+      EBSVolumeSize: 400
+    Large:
+      InstanceType: r4.large
+      EBSVolumeSize: 500
+    Xlarge:
+      InstanceType: r4.xlarge
+      EBSVolumeSize: 500
 Parameters:
-  VpcId:
-    Description: The VPC of the worker instances
-    Type: AWS::EC2::VPC::Id
+  ClusterStackName:
+    Description: 'Name of the existing EKS Cluster CloudFormation stack to import resources from.'
+    Type: String
+    Default: 'eks-cluster'
 
-  Subnets:
-    Description: Select 3 subnets where workers can be created.
-    Type: List<AWS::EC2::Subnet::Id>
+  EnvSize:
+    Description: 'This will determine the instance size used.'
+    Type: String
+    Default: 'Small'
+    AllowedValues:
+      - Small
+      - Medium
+      - Large
+      - Xlarge
 
   KeyName:
     Description: The EC2 Key Pair to allow SSH access to the instances
@@ -73,11 +83,11 @@ Parameters:
   NodeInstanceType:
     Description: Default EC2 instance type for the node instances.
     Type: String
-    Default: t3.large
+    Default: t3.small
     AllowedValues:
-    - t2.small
-    - t2.medium
-    - t2.large
+    - t3.small
+    - t3.medium
+    - t3.large
     ConstraintDescription: must be a valid EC2 instance type.
 
   NodeAutoScalingGroupMinSize:
@@ -93,7 +103,7 @@ Parameters:
   NodeAutoScalingGroupMaxSize:
     Type: Number
     Description: Maximum size of Node Group ASG.
-    Default: 5
+    Default: 3
 
   ASGAutoAssignPublicIp:
     Type: String
@@ -116,12 +126,7 @@ Parameters:
   SpotInstancePools:
     Type: Number
     Description: "spot instance pools(1-20)"
-    Default: 2
-
-  InstanceTypesOverride:
-    Type: String
-    Description: "multiple spot instances to override(seperated by comma)"
-    Default: "t3.medium,t3.large,t3.xlarge"
+    Default: 1
 
   UseExistingNodeSecurityGroups:
     Type: String
@@ -154,8 +159,13 @@ Parameters:
     Type: AWS::EC2::SecurityGroup::Id
 
   NodeGroupName:
-    Description: Unique identifier for the Node Group.
+    Description: Unique resource identifier for the Node Group.
     Type: String
+
+  VPCStackName:
+    Description: 'Name of the existing VPC CloudFormation stack to import resources from.'
+    Type: String
+    Default: 'eks-vpc'
 
 Conditions:
   PreferredDefaultAMI: !Equals [ !Ref NodeImageId, "" ]
@@ -196,7 +206,7 @@ Resources:
     Properties:
       GroupDescription: Security group for all nodes in the cluster
       VpcId:
-        !Ref VpcId
+         Fn::ImportValue: !Sub '${VPCStackName}-VPCId'
       Tags:
       - Key: !Sub "kubernetes.io/cluster/${ClusterName}"
         Value: 'owned'
@@ -284,22 +294,18 @@ Resources:
       HealthCheckProtocol: HTTP
       HealthCheckTimeoutSeconds: 5
       HealthyThresholdCount: 2
-      # Matcher: Matcher
       Name: !Sub "${AWS::StackName}-tg"
       Port: !Ref TargetGroupPort
       Protocol: HTTP
       TargetType: instance
       UnhealthyThresholdCount: 2
-      VpcId: !Ref VpcId
+      VpcId:
+          Fn::ImportValue: !Sub '${VPCStackName}-VPCId'
 
   NodeGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
       DesiredCapacity: !Ref NodeAutoScalingGroupDesiredSize
-      #LaunchConfigurationName: !Ref NodeLaunchConfig
-      # LaunchTemplate:
-      #   LaunchTemplateId: !Ref MyLaunchTemplate
-      #   Version: !GetAtt MyLaunchTemplate.LatestVersionNumber
       MixedInstancesPolicy:
         InstancesDistribution:
           OnDemandAllocationStrategy: prioritized
@@ -308,22 +314,14 @@ Resources:
           SpotAllocationStrategy: lowest-price
           SpotInstancePools: !Ref SpotInstancePools
           # SpotMaxPrice: String
-        LaunchTemplate:
-          LaunchTemplateSpecification:
-            LaunchTemplateId: !Ref MyLaunchTemplate
-            # LaunchTemplateName: String
-            Version: !GetAtt MyLaunchTemplate.LatestVersionNumber
-          Overrides:
-            - InstanceType: !Select [0, !Split [ ",", !Ref InstanceTypesOverride ] ]
-            - InstanceType: !Select [1, !Split [ ",", !Ref InstanceTypesOverride ] ]
-            - InstanceType: !Select [2, !Split [ ",", !Ref InstanceTypesOverride ] ]
-
+        LaunchConfigurationName: !Ref LaunchConfig
       MinSize: !Ref NodeAutoScalingGroupMinSize
       MaxSize: !Ref NodeAutoScalingGroupMaxSize
       TargetGroupARNs:
         - !Ref TG
-      VPCZoneIdentifier:
-        !Ref Subnets
+      VPCZoneIdentifier: !Split
+        - ','
+        - Fn::ImportValue: !Sub '${VPCStackName}-SubnetsPrivate'
       Tags:
       - Key: Name
         Value: !Sub "${ClusterName}-${NodeGroupName}-ASG-Node"
@@ -336,31 +334,33 @@ Resources:
         MinInstancesInService: '0'
         MaxBatchSize: '1'
 
-
-#
-# Launch Template
-#
-  MyLaunchTemplate:
-    Type: AWS::EC2::LaunchTemplate
+  #####
+  # Launch Config
+  #####
+  LaunchConfig:
+    Type: 'AWS::AutoScaling::LaunchConfiguration'
     Properties:
-      LaunchTemplateName: !Sub "eksLaunchTemplate-${AWS::StackName}"
-      LaunchTemplateData:
-        # SecurityGroupIds:
-        #   - !Ref NodeSecurityGroup
-        TagSpecifications:
-          -
-            ResourceType: instance
-            Tags:
-              - Key: Name
-                Value: !Sub "${ClusterName}-${NodeGroupName}-ASG-Node"
-              - Key: KubernetesCluster
-                Value: !Ref ClusterName
-              - Key: !Sub 'kubernetes.io/cluster/${ClusterName}'
-                Value: 'owned'
-        UserData:
-          Fn::Base64:
-            !Sub |
-            #!/bin/bash
+      AssociatePublicIpAddress: false
+      ImageId: !Ref NodeImageId
+      SecurityGroups:
+        !If
+          - CreateNewNodeSG
+          - !Ref NodeSecurityGroup
+          - !Split [ ",", !Ref ExistingNodeSecurityGroups ]
+      InstanceType: !Ref NodeInstanceType
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: !FindInMap [EnvSize, !Ref EnvSize, EBSVolumeSize]
+            VolumeType: gp2
+            DeleteOnTermination: 'true'
+      KeyName: !Ref KeyName
+      InstanceMonitoring: 'true'
+      IamInstanceProfile: !Ref NodeInstanceProfile
+      UserData:
+       Fn::Base64:
+        !Sub |
+         #!/bin/bash
             set -o xtrace
             iid=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
             export AWS_DEFAULT_REGION=${AWS::Region}
@@ -370,35 +370,12 @@ Resources:
             else
               /etc/eks/bootstrap.sh ${ClusterName} ${BootstrapArgumentsForOnDemand}
             fi
-            # /etc/eks/bootstrap.sh ${ClusterName} $BootstrapArgumentsForOnDemand
+
             /opt/aws/bin/cfn-signal --exit-code $? \
                      --stack  ${AWS::StackName} \
                      --resource NodeGroup  \
                      --region ${AWS::Region}
-        IamInstanceProfile:
-          Arn: !GetAtt NodeInstanceProfile.Arn
-        KeyName: !Ref KeyName
-        NetworkInterfaces:
-          -
-            DeviceIndex: 0
-            AssociatePublicIpAddress:
-              !If
-                - IsASGAutoAssignPublicIp
-                - 'true'
-                - 'false'
-            SubnetId: !Select [0, !Ref Subnets]
-            Groups:
-              !If
-                - CreateNewNodeSG
-                -
-                  - !Ref NodeSecurityGroup
-                - !Split [ ",", !Ref ExistingNodeSecurityGroups ]
-        ImageId:
-          !If
-            - PreferredDefaultAMI
-            - !FindInMap [AMIMap, !Ref "AWS::Region", ami ]
-            - !Ref NodeImageId
-        InstanceType: !Ref NodeInstanceType
+
 
 Outputs:
   NodeInstanceRole:
