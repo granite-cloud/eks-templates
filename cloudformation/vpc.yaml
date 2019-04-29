@@ -133,7 +133,7 @@ Resources:
               - !FindInMap [EnvMap, !Ref Environment, SubnetPrivate2]
               - !Select [1, !GetAZs ""]
 
-   SubnetPrivate3:
+  SubnetPrivate3:
     Type: 'AWS::EC2::Subnet'
     DependsOn: VPC
     Properties:

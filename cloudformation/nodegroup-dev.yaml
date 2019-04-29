@@ -7,54 +7,83 @@ Metadata:
       - Label:
           default: "EKS Configuration"
         Parameters:
-          - KeyName
-          - NodeImageId
-          - ClusterName
           - BootstrapArgumentsForOnDemand
           - BootstrapArgumentsForSpotFleet
           - ClusterControlPlaneSecurityGroup
+          - ClusterName
+          - Environment
+          - EnvSize
+          - KeyName
           - NodeGroupName
-          - UseExistingNodeSecurityGroups
-          - ExistingNodeSecurityGroups
+          - NodeImageId
       - Label:
           default: "Auto Scaling Configuration"
         Parameters:
-          - NodeAutoScalingGroupMinSize
-          - NodeAutoScalingGroupDesiredSize
-          - NodeAutoScalingGroupMaxSize
-          - NodeInstanceType
+          - ASGMinSize
+          - ASGDesiredSize
+          - ASGMaxSize
           - ASGAutoAssignPublicIp
+          - InstanceTypesOverride
+          - NodeInstanceType
           - OnDemandBaseCapacity
           - OnDemandPercentageAboveBaseCapacity
           - SpotInstancePools
       - Label:
-          default: "Advanced"
+          default: "TargetGroup"
         Parameters:
           - TargetGroupPort
       - Label:
           default: Import Stacks
         Parameters:
-          - VPCStackName
           - ClusterStackName
-Mappings:
-  EnvSize:
-    Small:
-      InstanceType: t3.large
-      EBSVolumeSize: 200
-    Medium:
-      InstanceType: t3.xlarge
-      EBSVolumeSize: 400
-    Large:
-      InstanceType: r4.large
-      EBSVolumeSize: 500
-    Xlarge:
-      InstanceType: r4.xlarge
-      EBSVolumeSize: 500
+          - VPCStackName
+
 Parameters:
+  ASGMinSize:
+    Type: Number
+    Description: Minimum size of Node Group ASG.
+    Default: 1
+
+  ASGDesiredSize:
+    Type: Number
+    Description: Desired size of Node Group ASG.
+    Default: 2
+
+  ASGMaxSize:
+    Type: Number
+    Description: Maximum size of Node Group ASG.
+    Default: 3
+
+  BootstrapArgumentsForOnDemand:
+    Description: Arguments to pass to the bootstrap script. See files/bootstrap.sh in https://github.com/awslabs/amazon-eks-ami
+    Default: "--kubelet-extra-args --node-labels=ondemand=yes"
+    Type: String
+
+  BootstrapArgumentsForSpotFleet:
+    Description: Arguments to pass to the bootstrap script. See files/bootstrap.sh in https://github.com/awslabs/amazon-eks-ami
+    Default: "--kubelet-extra-args '--node-labels=spotfleet=yes --register-with-taints=spotInstance=true:PreferNoSchedule'"
+    Type: String
+
+  ClusterControlPlaneSecurityGroup:
+    Description: The security group of the cluster control plane.
+    Type: AWS::EC2::SecurityGroup::Id
+
+  ClusterName:
+    Description: The cluster name provided when the cluster was created.  If it is incorrect, nodes will not be able to join the cluster.
+    Type: String
+
   ClusterStackName:
     Description: 'Name of the existing EKS Cluster CloudFormation stack to import resources from.'
     Type: String
     Default: 'eks-cluster'
+
+  Environment:
+    Description: 'Name of the environment for this stack.'
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
 
   EnvSize:
     Description: 'This will determine the instance size used.'
@@ -66,19 +95,23 @@ Parameters:
       - Large
       - Xlarge
 
+  InstanceTypesOverride:
+    Type: String
+    Description: "multiple spot instances to override(seperated by comma)"
+    Default: "t3.medium,t3.large,t3.xlarge"
+
   KeyName:
     Description: The EC2 Key Pair to allow SSH access to the instances
     Type: AWS::EC2::KeyPair::KeyName
-
-  TargetGroupPort:
-    Description: The port on which the targets receive traffic from TargetGroup
-    Type: String
-    Default: 31742
 
   NodeImageId:
     Description: AMI id for the node instances.
     Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
     Default: '/eks/ami-eks-optimzed-latest'
+
+  NodeGroupName:
+    Description: Unique resource identifier for the Node Group.
+    Type: String
 
   NodeInstanceType:
     Description: Default EC2 instance type for the node instances.
@@ -89,29 +122,6 @@ Parameters:
     - t3.medium
     - t3.large
     ConstraintDescription: must be a valid EC2 instance type.
-
-  NodeAutoScalingGroupMinSize:
-    Type: Number
-    Description: Minimum size of Node Group ASG.
-    Default: 1
-
-  NodeAutoScalingGroupDesiredSize:
-    Type: Number
-    Description: Desired size of Node Group ASG.
-    Default: 2
-
-  NodeAutoScalingGroupMaxSize:
-    Type: Number
-    Description: Maximum size of Node Group ASG.
-    Default: 3
-
-  ASGAutoAssignPublicIp:
-    Type: String
-    Description: "auto assign public IP address for ASG instances"
-    AllowedValues:
-      - "yes"
-      - "no"
-    Default: "yes"
 
   OnDemandBaseCapacity:
     Type: Number
@@ -128,52 +138,26 @@ Parameters:
     Description: "spot instance pools(1-20)"
     Default: 1
 
-  UseExistingNodeSecurityGroups:
+  TargetGroupPort:
+    Description: The port on which the targets receive traffic from TargetGroup
     Type: String
-    Description: OPTIONAL - select 'yes' if you prefer to attach existing SGs to nodegroup
-    Default: "no"
-    AllowedValues:
-      - "yes"
-      - "no"
-  ExistingNodeSecurityGroups:
-    Type: String
-    Description: OPTIONAL - attach existing security group ID(s) for your nodegroup
-    Default: ""
-
-  ClusterName:
-    Description: The cluster name provided when the cluster was created.  If it is incorrect, nodes will not be able to join the cluster.
-    Type: String
-
-  BootstrapArgumentsForOnDemand:
-    Description: Arguments to pass to the bootstrap script. See files/bootstrap.sh in https://github.com/awslabs/amazon-eks-ami
-    Default: "--kubelet-extra-args --node-labels=ondemand=yes"
-    Type: String
-
-  BootstrapArgumentsForSpotFleet:
-    Description: Arguments to pass to the bootstrap script. See files/bootstrap.sh in https://github.com/awslabs/amazon-eks-ami
-    Default: "--kubelet-extra-args '--node-labels=spotfleet=yes --register-with-taints=spotInstance=true:PreferNoSchedule'"
-    Type: String
-
-  ClusterControlPlaneSecurityGroup:
-    Description: The security group of the cluster control plane.
-    Type: AWS::EC2::SecurityGroup::Id
-
-  NodeGroupName:
-    Description: Unique resource identifier for the Node Group.
-    Type: String
+    Default: 31742
 
   VPCStackName:
     Description: 'Name of the existing VPC CloudFormation stack to import resources from.'
     Type: String
     Default: 'eks-vpc'
 
-Conditions:
-  PreferredDefaultAMI: !Equals [ !Ref NodeImageId, "" ]
-  IsASGAutoAssignPublicIp: !Equals [ !Ref ASGAutoAssignPublicIp , "yes" ]
-  AttachExistingNodeSG: !Equals [ !Ref UseExistingNodeSecurityGroups, "yes" ]
-  CreateNewNodeSG: !Equals [ !Ref UseExistingNodeSecurityGroups, "no" ]
-
-
+Mappings:
+  EnvSize:
+    Small:
+      EBSVolumeSize: 200
+    Medium:
+      EBSVolumeSize: 400
+    Large:
+      EBSVolumeSize: 500
+    Xlarge:
+      EBSVolumeSize: 500
 Resources:
   NodeInstanceProfile:
     Type: AWS::IAM::InstanceProfile
@@ -200,87 +184,70 @@ Resources:
         - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
         - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
 
-  NodeSecurityGroup:
-    Condition: CreateNewNodeSG
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: Security group for all nodes in the cluster
-      VpcId:
-         Fn::ImportValue: !Sub '${VPCStackName}-VPCId'
-      Tags:
-      - Key: !Sub "kubernetes.io/cluster/${ClusterName}"
-        Value: 'owned'
-      - Key: Name
-        Value: !Sub "${ClusterName}-cluster/NodeSecurityGroup"
 
   NodeSecurityGroupIngress:
-    Condition: CreateNewNodeSG
     Type: AWS::EC2::SecurityGroupIngress
-    DependsOn: NodeSecurityGroup
     Properties:
       Description: Allow node to communicate with each other
-      GroupId: !Ref NodeSecurityGroup
-      SourceSecurityGroupId: !Ref NodeSecurityGroup
+      GroupId:
+         Fn::ImportValue: !Sub '${ClusterStackName}-NodeSecurityGroup'
+      SourceSecurityGroupId:
+        Fn::ImportValue: !Sub '${ClusterStackName}-NodeSecurityGroup'
       IpProtocol: '-1'
       FromPort: 0
       ToPort: 65535
 
   NodeSecurityGroupFromControlPlaneIngress:
-    Condition: CreateNewNodeSG
     Type: AWS::EC2::SecurityGroupIngress
-    DependsOn: NodeSecurityGroup
     Properties:
       Description: Allow worker Kubelets and pods to receive communication from the cluster control plane
-      GroupId: !Ref NodeSecurityGroup
+      GroupId:
+         Fn::ImportValue: !Sub '${ClusterStackName}-NodeSecurityGroup'
       SourceSecurityGroupId: !Ref ClusterControlPlaneSecurityGroup
       IpProtocol: tcp
       FromPort: 1025
       ToPort: 65535
 
   ControlPlaneEgressToNodeSecurityGroup:
-    Condition: CreateNewNodeSG
     Type: AWS::EC2::SecurityGroupEgress
-    DependsOn: NodeSecurityGroup
     Properties:
       Description: Allow the cluster control plane to communicate with worker Kubelet and pods
       GroupId: !Ref ClusterControlPlaneSecurityGroup
-      DestinationSecurityGroupId: !Ref NodeSecurityGroup
+      DestinationSecurityGroupId:
+        Fn::ImportValue: !Sub '${ClusterStackName}-NodeSecurityGroup'
       IpProtocol: tcp
       FromPort: 1025
       ToPort: 65535
 
   NodeSecurityGroupFromControlPlaneOn443Ingress:
-    Condition: CreateNewNodeSG
     Type: AWS::EC2::SecurityGroupIngress
-    DependsOn: NodeSecurityGroup
     Properties:
       Description: Allow pods running extension API servers on port 443 to receive communication from cluster control plane
-      GroupId: !Ref NodeSecurityGroup
+      GroupId:
+         Fn::ImportValue: !Sub '${ClusterStackName}-NodeSecurityGroup'
       SourceSecurityGroupId: !Ref ClusterControlPlaneSecurityGroup
       IpProtocol: tcp
       FromPort: 443
       ToPort: 443
 
   ControlPlaneEgressToNodeSecurityGroupOn443:
-    Condition: CreateNewNodeSG
     Type: AWS::EC2::SecurityGroupEgress
-    DependsOn: NodeSecurityGroup
     Properties:
       Description: Allow the cluster control plane to communicate with pods running extension API servers on port 443
       GroupId: !Ref ClusterControlPlaneSecurityGroup
-      DestinationSecurityGroupId: !Ref NodeSecurityGroup
+      DestinationSecurityGroupId:
+        Fn::ImportValue: !Sub '${ClusterStackName}-NodeSecurityGroup'
       IpProtocol: tcp
       FromPort: 443
       ToPort: 443
 
   ClusterControlPlaneSecurityGroupIngress:
-    Condition: CreateNewNodeSG
     Type: AWS::EC2::SecurityGroupIngress
-    DependsOn: NodeSecurityGroup
     Properties:
       Description: Allow pods to communicate with the cluster API Server
       GroupId: !Ref ClusterControlPlaneSecurityGroup
-      SourceSecurityGroupId: !Ref NodeSecurityGroup
+      SourceSecurityGroupId:
+        Fn::ImportValue: !Sub '${ClusterStackName}-NodeSecurityGroup'
       IpProtocol: tcp
       ToPort: 443
       FromPort: 443
@@ -305,7 +272,7 @@ Resources:
   NodeGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
-      DesiredCapacity: !Ref NodeAutoScalingGroupDesiredSize
+      DesiredCapacity: !Ref ASGDesiredSize
       MixedInstancesPolicy:
         InstancesDistribution:
           OnDemandAllocationStrategy: prioritized
@@ -314,9 +281,17 @@ Resources:
           SpotAllocationStrategy: lowest-price
           SpotInstancePools: !Ref SpotInstancePools
           # SpotMaxPrice: String
-        LaunchConfigurationName: !Ref LaunchConfig
-      MinSize: !Ref NodeAutoScalingGroupMinSize
-      MaxSize: !Ref NodeAutoScalingGroupMaxSize
+        LaunchTemplate:
+          LaunchTemplateSpecification:
+              LaunchTemplateId: !Ref LaunchTemplate
+              # LaunchTemplateName: String
+              Version: !GetAtt LaunchTemplate.LatestVersionNumber
+          Overrides:
+              - InstanceType: !Select [0, !Split [ ",", !Ref InstanceTypesOverride ] ]
+              - InstanceType: !Select [1, !Split [ ",", !Ref InstanceTypesOverride ] ]
+              - InstanceType: !Select [2, !Split [ ",", !Ref InstanceTypesOverride ] ]
+      MinSize: !Ref ASGMinSize
+      MaxSize: !Ref ASGMaxSize
       TargetGroupARNs:
         - !Ref TG
       VPCZoneIdentifier: !Split
@@ -335,35 +310,33 @@ Resources:
         MaxBatchSize: '1'
 
   #####
-  # Launch Config
+  # Launch Template
   #####
-  LaunchConfig:
-    Type: 'AWS::AutoScaling::LaunchConfiguration'
+  LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
     Properties:
-      AssociatePublicIpAddress: false
-      ImageId: !Ref NodeImageId
-      SecurityGroups:
-        !If
-          - CreateNewNodeSG
-          - !Ref NodeSecurityGroup
-          - !Split [ ",", !Ref ExistingNodeSecurityGroups ]
-      InstanceType: !Ref NodeInstanceType
-      BlockDeviceMappings:
-        - DeviceName: /dev/xvda
-          Ebs:
-            VolumeSize: !FindInMap [EnvSize, !Ref EnvSize, EBSVolumeSize]
-            VolumeType: gp2
-            DeleteOnTermination: 'true'
-      KeyName: !Ref KeyName
-      InstanceMonitoring: 'true'
-      IamInstanceProfile: !Ref NodeInstanceProfile
-      UserData:
-       Fn::Base64:
-        !Sub |
-         #!/bin/bash
+      LaunchTemplateName: !Sub "eksLaunchTemplate-${AWS::StackName}"
+      LaunchTemplateData:
+        SecurityGroupIds:
+           - Fn::ImportValue: !Sub '${ClusterStackName}-NodeSecurityGroup'
+        TagSpecifications:
+          -
+            ResourceType: instance
+            Tags:
+              - Key: Name
+                Value: !Sub "${ClusterName}-${NodeGroupName}-ASG-Node"
+              - Key: KubernetesCluster
+                Value: !Ref ClusterName
+              - Key: !Sub 'kubernetes.io/cluster/${ClusterName}'
+                Value: 'owned'
+        UserData:
+          Fn::Base64:
+            !Sub |
+            #!/bin/bash
             set -o xtrace
             iid=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
             export AWS_DEFAULT_REGION=${AWS::Region}
+
             ilc=`aws ec2 describe-instances --instance-ids  $iid  --query 'Reservations[0].Instances[0].InstanceLifecycle' --output text`
             if [ "$ilc" == "spot" ]; then
               /etc/eks/bootstrap.sh ${ClusterName} ${BootstrapArgumentsForSpotFleet}
@@ -375,7 +348,11 @@ Resources:
                      --stack  ${AWS::StackName} \
                      --resource NodeGroup  \
                      --region ${AWS::Region}
-
+        IamInstanceProfile:
+          Arn: !GetAtt NodeInstanceProfile.Arn
+        KeyName: !Ref KeyName
+        ImageId: !Ref NodeImageId
+        InstanceType: !Ref NodeInstanceType
 
 Outputs:
   NodeInstanceRole:

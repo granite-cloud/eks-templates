@@ -68,7 +68,7 @@ Resources:
           - !Ref AWS::NoValue
 
   #####
-  # Security Groups and IAM
+  # Security Groups
   #####
   ControlPlaneSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -77,6 +77,22 @@ Resources:
       VpcId:
         Fn::ImportValue: !Sub '${VPCStackName}-VPCId'
 
+
+  NodeSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for all nodes in the cluster
+      VpcId:
+         Fn::ImportValue: !Sub '${VPCStackName}-VPCId'
+      Tags:
+      - Key: !Sub "kubernetes.io/cluster/${ClusterName}"
+        Value: 'owned'
+      - Key: Name
+        Value: !Sub "${ClusterName}-cluster/NodeSecurityGroup"
+
+  #####
+  # IAM Role
+  #####
   EksServiceRole:
     Type: AWS::IAM::Role
     Properties:
@@ -115,8 +131,14 @@ Outputs:
     Export:
       Name: !Sub '${AWS::StackName}-EKSClusterName'
 
-  SecurityGroup:
+  ControlSecurityGroup:
     Description: Security group for the cluster control plane
     Value: !Ref ControlPlaneSecurityGroup
     Export:
       Name: !Sub '${AWS::StackName}-ControlPlaneSecurityGroup'
+
+  NodeSecurityGroup:
+    Description: Security group for the nodes
+    Value: !Ref NodeSecurityGroup
+    Export:
+      Name: !Sub '${AWS::StackName}-NodeSecurityGroup'
