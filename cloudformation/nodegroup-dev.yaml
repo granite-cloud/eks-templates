@@ -9,7 +9,6 @@ Metadata:
         Parameters:
           - BootstrapArgumentsForOnDemand
           - BootstrapArgumentsForSpotFleet
-          - ClusterControlPlaneSecurityGroup
           - ClusterName
           - Environment
           - EnvSize
@@ -63,10 +62,6 @@ Parameters:
     Description: Arguments to pass to the bootstrap script. See files/bootstrap.sh in https://github.com/awslabs/amazon-eks-ami
     Default: "--kubelet-extra-args '--node-labels=spotfleet=yes --register-with-taints=spotInstance=true:PreferNoSchedule'"
     Type: String
-
-  ClusterControlPlaneSecurityGroup:
-    Description: The security group of the cluster control plane.
-    Type: AWS::EC2::SecurityGroup::Id
 
   ClusterName:
     Description: The cluster name provided when the cluster was created.  If it is incorrect, nodes will not be able to join the cluster.
@@ -203,7 +198,8 @@ Resources:
       Description: Allow worker Kubelets and pods to receive communication from the cluster control plane
       GroupId:
          Fn::ImportValue: !Sub '${ClusterStackName}-NodeSecurityGroup'
-      SourceSecurityGroupId: !Ref ClusterControlPlaneSecurityGroup
+      SourceSecurityGroupId:
+         Fn::ImportValue: !Sub '${ClusterStackName}-ClusterControlPlaneSecurityGroup'
       IpProtocol: tcp
       FromPort: 1025
       ToPort: 65535
@@ -212,7 +208,8 @@ Resources:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
       Description: Allow the cluster control plane to communicate with worker Kubelet and pods
-      GroupId: !Ref ClusterControlPlaneSecurityGroup
+      GroupId:
+        Fn::ImportValue: !Sub '${ClusterStackName}-ClusterControlPlaneSecurityGroup'
       DestinationSecurityGroupId:
         Fn::ImportValue: !Sub '${ClusterStackName}-NodeSecurityGroup'
       IpProtocol: tcp
@@ -225,7 +222,8 @@ Resources:
       Description: Allow pods running extension API servers on port 443 to receive communication from cluster control plane
       GroupId:
          Fn::ImportValue: !Sub '${ClusterStackName}-NodeSecurityGroup'
-      SourceSecurityGroupId: !Ref ClusterControlPlaneSecurityGroup
+      SourceSecurityGroupId:
+         Fn::ImportValue: !Sub '${ClusterStackName}-ClusterControlPlaneSecurityGroup'
       IpProtocol: tcp
       FromPort: 443
       ToPort: 443
@@ -234,7 +232,8 @@ Resources:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
       Description: Allow the cluster control plane to communicate with pods running extension API servers on port 443
-      GroupId: !Ref ClusterControlPlaneSecurityGroup
+      GroupId:
+        Fn::ImportValue: !Sub '${ClusterStackName}-ClusterControlPlaneSecurityGroup'
       DestinationSecurityGroupId:
         Fn::ImportValue: !Sub '${ClusterStackName}-NodeSecurityGroup'
       IpProtocol: tcp
