@@ -199,7 +199,7 @@ Resources:
       GroupId:
          Fn::ImportValue: !Sub '${ClusterStackName}-NodeSecurityGroup'
       SourceSecurityGroupId:
-         Fn::ImportValue: !Sub '${ClusterStackName}-ClusterControlPlaneSecurityGroup'
+         Fn::ImportValue: !Sub '${ClusterStackName}-ControlPlaneSecurityGroup'
       IpProtocol: tcp
       FromPort: 1025
       ToPort: 65535
@@ -209,7 +209,7 @@ Resources:
     Properties:
       Description: Allow the cluster control plane to communicate with worker Kubelet and pods
       GroupId:
-        Fn::ImportValue: !Sub '${ClusterStackName}-ClusterControlPlaneSecurityGroup'
+        Fn::ImportValue: !Sub '${ClusterStackName}-ControlPlaneSecurityGroup'
       DestinationSecurityGroupId:
         Fn::ImportValue: !Sub '${ClusterStackName}-NodeSecurityGroup'
       IpProtocol: tcp
@@ -223,7 +223,7 @@ Resources:
       GroupId:
          Fn::ImportValue: !Sub '${ClusterStackName}-NodeSecurityGroup'
       SourceSecurityGroupId:
-         Fn::ImportValue: !Sub '${ClusterStackName}-ClusterControlPlaneSecurityGroup'
+         Fn::ImportValue: !Sub '${ClusterStackName}-ControlPlaneSecurityGroup'
       IpProtocol: tcp
       FromPort: 443
       ToPort: 443
@@ -233,18 +233,19 @@ Resources:
     Properties:
       Description: Allow the cluster control plane to communicate with pods running extension API servers on port 443
       GroupId:
-        Fn::ImportValue: !Sub '${ClusterStackName}-ClusterControlPlaneSecurityGroup'
+        Fn::ImportValue: !Sub '${ClusterStackName}-ControlPlaneSecurityGroup'
       DestinationSecurityGroupId:
         Fn::ImportValue: !Sub '${ClusterStackName}-NodeSecurityGroup'
       IpProtocol: tcp
       FromPort: 443
       ToPort: 443
 
-  ClusterControlPlaneSecurityGroupIngress:
+  ControlPlaneSecurityGroupIngress:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       Description: Allow pods to communicate with the cluster API Server
-      GroupId: !Ref ClusterControlPlaneSecurityGroup
+      GroupId:
+        Fn::ImportValue: !Sub '${ClusterStackName}-ControlPlaneSecurityGroup'
       SourceSecurityGroupId:
         Fn::ImportValue: !Sub '${ClusterStackName}-NodeSecurityGroup'
       IpProtocol: tcp
