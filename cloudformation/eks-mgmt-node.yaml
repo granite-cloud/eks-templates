@@ -1,0 +1,247 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'EKS Management Node for quick testing in dev environments'
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      -
+        Label:
+          default: 'Aws Environment'
+        Parameters:
+          - Environment
+      -
+        Label:
+          default: 'S3 Artifacts'
+        Parameters:
+          - Bucket
+      -
+        Label:
+          default: 'EC2 Instance'
+        Parameters:
+          - EnvSize
+          - Key
+          - LatestAmiId
+      -
+        Label:
+          default: 'Import Stacks'
+        Parameters:
+          - VPCStackName
+          - ClusterStackName
+Parameters:
+  Bucket:
+    Description: 'Name of S3 bucket to pull aws auth template from'
+    Type: String
+
+  ClusterStackName:
+    Description: 'Name of the existing EKS Cluster CloudFormation stack to import resources from.'
+    Type: String
+    Default: 'eks-cluster'
+
+  Environment:
+   Description: 'Name of the environment for this stack.'
+   Type: String
+   Default: 'dev'
+   AllowedValues:
+   - dev
+   - prod
+   ConstraintDescription: 'Must be a valid environment type.'
+
+  EnvSize:
+    Description: 'This will determine the instance size used.'
+    Type: String
+    Default: 'Small'
+    AllowedValues:
+      - Small
+      - Medium
+      - Large
+      - Xlarge
+    ConstraintDescription: 'Must be a valid size of Small,Medium,Large, or Xlarge.'
+
+  Key:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: 'SSH Key to use for the instance'
+
+  LatestAmiId:
+    Description: AMI id for the node instances.
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/eks/ami-eks-optimzed-latest'
+
+  VPCStackName:
+    Description: 'Name of the existing VPC CloudFormation stack to import resources from.'
+    Type: String
+    Default: 'eks-vpc'
+Mappings:
+  EnvSize:
+    Small:
+      InstanceType: t2.micro
+      EBSVolumeSize: 80
+    Medium:
+      InstanceType: t2.xlarge
+      EBSVolumeSize: 400
+    Large:
+      InstanceType: r4.large
+      EBSVolumeSize: 500
+    Xlarge:
+      InstanceType: r4.xlarge
+      EBSVolumeSize: 500
+
+Resources:
+  InstanceProfile:
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      Path: /
+      Roles:
+        - !Ref EC2Role
+
+  ##############
+  # Auto Scale
+  ##############
+  AutoScalingGroup:
+    Type: 'AWS::AutoScaling::AutoScalingGroup'
+    CreationPolicy:
+      ResourceSignal:
+        Count:  1
+        Timeout: PT10M
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        PauseTime: PT15M
+        SuspendProcesses:
+        - HealthCheck
+        - ReplaceUnhealthy
+        - AZRebalance
+        - AlarmNotification
+        - ScheduledActions
+        WaitOnResourceSignals: true
+    Properties:
+      VPCZoneIdentifier: !Split
+        - ','
+        - Fn::ImportValue: !Sub '${VPCStackName}-SubnetsPublic'
+      MetricsCollection:
+        - Granularity: "1Minute"
+      AutoScalingGroupName: !Join [ '-', [ !Ref Environment, !Ref "AWS::StackName" ] ]
+      DesiredCapacity: 1
+      HealthCheckType: EC2
+      HealthCheckGracePeriod: 120
+      LaunchConfigurationName: !Ref LaunchConfig
+      MaxSize: 2
+      MinSize: 1
+      TerminationPolicies:
+        - OldestInstance
+        - Default
+
+    UpdatePolicy:
+      AutoScalingScheduledAction:
+        IgnoreUnmodifiedGroupSizeProperties: 'true'
+
+  ##############
+  # Launch Config
+  ##############
+  LaunchConfig:
+    Type: 'AWS::AutoScaling::LaunchConfiguration'
+    Metadata:
+      AWS::CloudFormation::Init:
+        configSets:
+          eks:
+            - install_packages
+            - configure_cfn
+            - kube_setup
+        install_packages:
+          packages:
+            yum:
+              jq: []
+              git: []
+        configure_cfn:
+          files:
+            /etc/cfn/hooks.d/cfn-auto-reloader.conf:
+              content: !Sub |
+                [cfn-auto-reloader-hook]
+                triggers=post.update
+                path=Resources.AutoScalingGroup.Metadata.AWS::CloudFormation::Init
+                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource AutoScalingGroup --configsets eks --region ${AWS::Region}
+              mode: "000400"
+              owner: root
+              group: root
+            /etc/cfn/cfn-hup.conf:
+              content: !Sub |
+                [main]
+                stack=${AWS::StackId}
+                region=${AWS::Region}
+                verbose=true
+                interval=5
+              mode: "000400"
+              owner: root
+              group: root
+          services:
+            sysvinit:
+              cfn-hup:
+                enabled: true
+                ensureRunning: true
+                files:
+                - /etc/cfn/cfn-hup.conf
+                - /etc/cfn/hooks.d/cfn-auto-reloader.conf
+        kube_setup:
+          commands:
+            01_download_iam_auth:
+              cwd: "/"
+              test: "test ! -e /aws-iam-authenticator"
+              command: "curl -o aws-iam-authenticator https://amazon-eks.s3-us-west-2.amazonaws.com/1.12.7/2019-03-27/bin/linux/amd64/aws-iam-authenticator && chmod +x ./aws-iam-authenticator "
+            02_set_path:
+              cwd: "/"
+              command: "mkdir -p $HOME/bin && cp ./aws-iam-authenticator $HOME/bin/aws-iam-authenticator && export PATH=$HOME/bin:$PATH && echo 'export PATH=$HOME/bin:$PATH' >> ~/.bashrc"
+            03_set_kube_config:
+              command:
+                !Sub |
+                  aws eks update-kubeconfig --name eks-cluster --region ${AWS::Region}
+
+    Properties:
+      AssociatePublicIpAddress: true
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: !FindInMap [EnvSize, !Ref EnvSize, EBSVolumeSize]
+            VolumeType: gp2
+            DeleteOnTermination: 'true'
+      IamInstanceProfile: !Ref InstanceProfile
+      ImageId: !Ref LatestAmiId
+      InstanceType: !FindInMap [EnvSize, !Ref EnvSize, InstanceType]
+      InstanceMonitoring: 'true'
+      KeyName: !Ref Key
+      SecurityGroups:
+        -  Fn::ImportValue: !Sub '${ClusterStackName}-NodeSecurityGroup'
+      UserData:
+       Fn::Base64:
+        !Sub |
+          #!/bin/bash
+          yum -y update
+          yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+          yum install -y https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.amzn1.noarch.rpm
+          yum -y install python-pip
+          pip install --user pystache argparse python-daemon requests
+
+          /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource LaunchConfig --configsets eks --region ${AWS::Region}
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource AutoScalingGroup --region ${AWS::Region}
+
+  EC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+      Policies:
+              - PolicyName: !Sub '${AWS::Stackname}-policy'
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - eks:Describe*
+                  - ec2:CreateTags
+                  - ec2:DescribeSubnets
+                Resource: '*'

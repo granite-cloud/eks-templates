@@ -358,3 +358,5 @@ Outputs:
   NodeInstanceRole:
     Description: The node instance role
     Value: !GetAtt NodeInstanceRole.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-NodeInstanceRole"
