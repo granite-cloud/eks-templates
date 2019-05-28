@@ -1,0 +1,387 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'VPC'
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: 'Aws Environment'
+        Parameters:
+          - Environment
+
+Parameters:
+  Environment:
+    Description: 'Name of the environment for this stack.'
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - qa
+      - stage
+      - prod
+    ConstraintDescription: 'Must be a valid environment type.'
+Mappings:
+  EnvMap:
+    dev:
+      VPCSubnet: 10.22.0.0/16
+      SubnetPublic1: 10.22.1.0/24
+      SubnetPublic2: 10.22.2.0/24
+      SubnetPrivate1: 10.22.3.0/24
+      SubnetPrivate2: 10.22.4.0/24
+      SubnetPrivate3: 10.22.5.0/24
+      EnvCode: D
+    prod:
+      VPCSubnet: 10.23.0.0/16
+      SubnetPublic1: 10.23.1.0/24
+      SubnetPublic2: 10.23.2.0/24
+      SubnetPrivate1: 10.23.3.0/24
+      SubnetPrivate2: 10.23.4.0/24
+      SubnetPrivate3: 10.23.5.0/24
+      EnvCode: P
+  RegionMap:
+    us-east-1:
+      RegionCode: UE1
+
+Conditions:
+  IsDev: !Equals [!Ref Environment, dev]
+  IsProd: !Equals [!Ref Environment, prod]
+  IsQA:  !Equals [!Ref Environment, qa]
+  IsStage:  !Equals [!Ref Environment, stage]
+  IsProdOrStage: !Or [Condition: IsProd, Condition: IsStage]
+  NotProd: !Not [!Equals [!Ref Environment, prod]]
+Resources:
+  VPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: !FindInMap [EnvMap, !Ref Environment, VPCSubnet]
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value:
+            'Fn::Join':
+            - '-'
+            - - !Ref Environment
+              - !FindInMap [EnvMap, !Ref Environment, VPCSubnet]
+
+  # Public Subnets
+  SubnetPublic1:
+    Type: 'AWS::EC2::Subnet'
+    DependsOn: VPC
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !FindInMap [EnvMap, !Ref Environment, SubnetPublic1]
+      AvailabilityZone:  !Select [0, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value:
+            'Fn::Join':
+            - '-'
+            - - public
+              - !FindInMap [EnvMap, !Ref Environment, SubnetPublic1]
+              - !Select [0, !GetAZs ""]
+
+  SubnetPublic2:
+    Type: 'AWS::EC2::Subnet'
+    DependsOn: VPC
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !FindInMap [EnvMap, !Ref Environment, SubnetPublic2]
+      AvailabilityZone:  !Select [1, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value:
+            'Fn::Join':
+            - '-'
+            - - public
+              - !FindInMap [EnvMap, !Ref Environment, SubnetPublic2]
+              - !Select [1, !GetAZs ""]
+
+  # Private Subnets
+  SubnetPrivate1:
+    Type: 'AWS::EC2::Subnet'
+    DependsOn: VPC
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !FindInMap [EnvMap, !Ref Environment, SubnetPrivate1]
+      AvailabilityZone:  !Select [0, !GetAZs ""]
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value:
+            'Fn::Join':
+            - '-'
+            - - private
+              - !FindInMap [EnvMap, !Ref Environment, SubnetPrivate1]
+              - !Select [0, !GetAZs ""]
+
+  SubnetPrivate2:
+    Type: 'AWS::EC2::Subnet'
+    DependsOn: VPC
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !FindInMap [EnvMap, !Ref Environment, SubnetPrivate2]
+      AvailabilityZone:  !Select [1, !GetAZs ""]
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value:
+            'Fn::Join':
+            - '-'
+            - - private
+              - !FindInMap [EnvMap, !Ref Environment, SubnetPrivate2]
+              - !Select [1, !GetAZs ""]
+
+  SubnetPrivate3:
+    Type: 'AWS::EC2::Subnet'
+    DependsOn: VPC
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !FindInMap [EnvMap, !Ref Environment, SubnetPrivate3]
+      AvailabilityZone:  !Select [2, !GetAZs ""]
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value:
+            'Fn::Join':
+            - '-'
+            - - private
+              - !FindInMap [EnvMap, !Ref Environment, SubnetPrivate3]
+              - !Select [2, !GetAZs ""]
+
+  ########
+  # NAT Resources
+  ########
+  NATEIP1:
+    Type: 'AWS::EC2::EIP'
+    Properties:
+      Domain: vpc
+
+  NATEIP2:
+    Type: 'AWS::EC2::EIP'
+    Condition: IsProd
+    Properties:
+      Domain: vpc
+
+  NGW1:
+    Type: 'AWS::EC2::NatGateway'
+    DependsOn:
+      - SubnetPublic1
+    Properties:
+      AllocationId: !GetAtt
+        - NATEIP1
+        - AllocationId
+      SubnetId: !Ref  SubnetPublic1
+
+  NGW2:
+    Type: 'AWS::EC2::NatGateway'
+    Condition: IsProd
+    DependsOn:
+      - SubnetPublic2
+    Properties:
+      AllocationId: !GetAtt
+        - NATEIP2
+        - AllocationId
+      SubnetId: !Ref  SubnetPublic2
+
+  NATRoute1:
+    Type: 'AWS::EC2::Route'
+    DependsOn: NGW1
+    Properties:
+      NatGatewayId: !Ref NGW1
+      RouteTableId: !Ref routetableprivate1
+      DestinationCidrBlock: 0.0.0.0/0
+
+  ##############################
+  # DependsOn will not allow conditional functions like !If and hence why
+  # we have another conditional resource below.
+  # The intent is to make sure we only spend money on additional NAT GW in prod. There are other
+  # ways to accomplish this with condtions but this was an attempt to require the least amount
+  # of conditional resources since it starts to get ugly if there are more than a 2-3.
+  #############################
+  NATRoute1a:
+    Type: 'AWS::EC2::Route'
+    Condition: NotProd
+    DependsOn: NGW1
+    Properties:
+      NatGatewayId: !Ref NGW1
+      RouteTableId: !Ref routetableprivate2
+      DestinationCidrBlock: 0.0.0.0/0
+
+  NATRoute2:
+    Type: 'AWS::EC2::Route'
+    Condition: IsProd
+    DependsOn:  NGW2
+    Properties:
+      NatGatewayId: !Ref NGW2
+      RouteTableId: !Ref routetableprivate2
+      DestinationCidrBlock: 0.0.0.0/0
+
+  #########
+  # Gateway and Route Tables
+  #########
+  IGW:
+    Type: 'AWS::EC2::InternetGateway'
+    DependsOn:
+      - SubnetPublic1
+      - SubnetPublic2
+
+  IGAttach:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref IGW
+
+  IGWDefaultRoute:
+    Type: 'AWS::EC2::Route'
+    DependsOn:
+      - IGW
+      - IGAttach
+    Properties:
+      GatewayId: !Ref IGW
+      RouteTableId: !Ref routetablepublic
+      DestinationCidrBlock: 0.0.0.0/0
+
+  routetablepublic:
+    Type: 'AWS::EC2::RouteTable'
+    DependsOn: VPC
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: public
+
+  routetableprivate1:
+    Type: 'AWS::EC2::RouteTable'
+    DependsOn: VPC
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value:
+            'Fn::Join':
+            - ':'
+            - - private
+              - !FindInMap [EnvMap, !Ref Environment, SubnetPrivate1]
+
+  routetableprivate2:
+    Type: 'AWS::EC2::RouteTable'
+    DependsOn: VPC
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value:
+            'Fn::Join':
+            - ':'
+            - - private
+              - !FindInMap [EnvMap, !Ref Environment, SubnetPrivate2]
+
+  ###########
+  # Route Table Associations
+  ###########
+  a:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref  SubnetPublic1
+      RouteTableId: !Ref routetablepublic
+
+  b:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref  SubnetPublic2
+      RouteTableId: !Ref routetablepublic
+
+  c:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref SubnetPrivate1
+      RouteTableId: !Ref routetableprivate1
+  d:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref SubnetPrivate2
+      RouteTableId: !Ref routetableprivate2
+
+  ###########
+  # Security Groups
+  ###########
+
+
+#Outputs that can be consumed by other stacks
+Outputs:
+  AZs:
+    Description: 'AZs'
+    Value: !Join [',', [!Select [0, !GetAZs ''], !Select [1, !GetAZs '']]]
+    Export:
+      Name: !Sub '${AWS::StackName}-AZs'
+
+  AZA:
+    Description: 'AZ of A'
+    Value: !Select [0, !GetAZs '']
+    Export:
+      Name: !Sub '${AWS::StackName}-AZA'
+  AZB:
+    Description: 'AZ of B'
+    Value: !Select [1, !GetAZs '']
+    Export:
+      Name: !Sub '${AWS::StackName}-AZB'
+  AZC:
+    Description: 'AZ of C'
+    Value: !Select [2, !GetAZs '']
+    Export:
+      Name: !Sub '${AWS::StackName}-AZC'
+
+  AZD:
+    Description: 'AZ of D'
+    Value: !Select [3, !GetAZs '']
+    Export:
+      Name: !Sub '${AWS::StackName}-AZD'
+
+  SubnetPrivate1:
+    Description: Private Subnet 1
+    Value: !Ref SubnetPrivate1
+    Export:
+      Name: !Sub '${AWS::StackName}-SubnetPrivate1'
+
+  SubnetPrivate2:
+    Description: Private Subnet 2
+    Value: !Ref SubnetPrivate2
+    Export:
+      Name: !Sub '${AWS::StackName}-SubnetPrivate2'
+
+  SubnetPublic1:
+    Description: Public Subnet 1
+    Value: !Ref SubnetPublic1
+    Export:
+      Name: !Sub '${AWS::StackName}-SubnetPublic1'
+
+  SubnetPublic2:
+    Description: Public Subnet 2
+    Value: !Ref SubnetPublic2
+    Export:
+      Name: !Sub '${AWS::StackName}-SubnetPublic2'
+
+  SubnetsPrivate:
+    Description: 'Subnets private.'
+    Value: !Join [',', [!Ref SubnetPrivate1, !Ref SubnetPrivate2]]
+    Export:
+      Name: !Sub '${AWS::StackName}-SubnetsPrivate'
+
+  SubnetsPublic:
+    Description: 'Subnets public.'
+    Value: !Join [',', [!Ref SubnetPublic1, !Ref SubnetPublic2]]
+    Export:
+      Name: !Sub '${AWS::StackName}-SubnetsPublic'
+  VPC:
+    Description: VPC
+    Value: !Ref VPC
+    Export:
+      Name: !Sub '${AWS::StackName}-VPCId'
+
+  VPCCidr:
+    Description: VPC Subnet
+    Value: !FindInMap [EnvMap, !Ref Environment, VPCSubnet]
+    Export:
+      Name: !Sub '${AWS::StackName}-VPCCidr'
