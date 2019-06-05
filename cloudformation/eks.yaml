@@ -101,17 +101,23 @@ Mappings:
       kubectl: 'arn:aws:lambda:us-east-1:627177891842:layer:lambda-layer-kubectl:2'
 
 Resources:
+  VPC:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://granite-eks-playground.s3.amazonaws.com/vpc.yaml'
+      Parameters:
+        Envionment: 'dev'
+
   Cluster:
+    DependsOn: VPC
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Sub 'https://granite-eks-playground.s3.amazonaws.com/cluster.yaml'
       Parameters:
-        VpcId:
-          Fn::ImportValue: !Sub '${VPCStackName}-VPCId'
         ClusterName: !Ref ClusterName
         ClusterVersion: !Ref ClusterVersion
-        SubnetIds:
-          Fn::ImportValue: !Sub '${VPCStackName}-SubnetsPrivate'
+        SubnetIds: !GetAtt VPC.Outputs.SubnetsPrivate
+        VpcId: !GetAtt VPC.Outputs.VPC
 
   AMI:
     Type: AWS::CloudFormation::Stack
@@ -139,10 +145,8 @@ Resources:
         ASGDesiredSize: !Ref ASGDesiredSize
         ASGMaxSize: !Ref ASGMaxSize
         OnDemandBaseCapacity: !Ref OnDemandBaseCapacity
-        Subnets:
-          Fn::ImportValue: !Sub '${VPCStackName}-SubnetsPrivate'
-        VpcId:
-          Fn::ImportValue: !Sub '${VPCStackName}-VPCId'
+        Subnets: !GetAtt VPC.Outputs.SubnetsPrivate
+        VpcId: !GetAtt VPC.Outputs.VPC
 
   ConfigMapLambda:
     DependsOn: NodeGroup
