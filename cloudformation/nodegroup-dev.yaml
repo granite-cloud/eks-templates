@@ -194,10 +194,8 @@ Resources:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       Description: Allow node to communicate with each other
-      GroupId:
-         Fn::ImportValue: !Ref NodeSecurityGroup
-      SourceSecurityGroupId:
-        Fn::ImportValue: !Ref NodeSecurityGroup
+      GroupId: !Ref NodeSecurityGroup
+      SourceSecurityGroupId: !Ref NodeSecurityGroup
       IpProtocol: '-1'
       FromPort: 0
       ToPort: 65535
@@ -206,10 +204,8 @@ Resources:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       Description: Allow worker Kubelets and pods to receive communication from the cluster control plane
-      GroupId:
-         Fn::ImportValue: !Ref NodeSecurityGroup
-      SourceSecurityGroupId:
-         Fn::ImportValue: !Ref ControlPlaneSecurityGroup
+      GroupId: !Ref NodeSecurityGroup
+      SourceSecurityGroupId: !Ref ControlPlaneSecurityGroup
       IpProtocol: tcp
       FromPort: 1025
       ToPort: 65535
@@ -218,10 +214,8 @@ Resources:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
       Description: Allow the cluster control plane to communicate with worker Kubelet and pods
-      GroupId:
-        Fn::ImportValue: !Ref ControlPlaneSecurityGroup
-      DestinationSecurityGroupId:
-        Fn::ImportValue: !Ref NodeSecurityGroup
+      GroupId: !Ref ControlPlaneSecurityGroup
+      DestinationSecurityGroupId: !Ref NodeSecurityGroup
       IpProtocol: tcp
       FromPort: 1025
       ToPort: 65535
@@ -230,10 +224,8 @@ Resources:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       Description: Allow pods running extension API servers on port 443 to receive communication from cluster control plane
-      GroupId:
-         Fn::ImportValue: !Ref NodeSecurityGroup
-      SourceSecurityGroupId:
-         Fn::ImportValue: !Ref ControlPlaneSecurityGroup
+      GroupId: !Ref NodeSecurityGroup
+      SourceSecurityGroupId: !Ref ControlPlaneSecurityGroup
       IpProtocol: tcp
       FromPort: 443
       ToPort: 443
@@ -242,10 +234,8 @@ Resources:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
       Description: Allow the cluster control plane to communicate with pods running extension API servers on port 443
-      GroupId:
-        Fn::ImportValue: !Ref ControlPlaneSecurityGroup
-      DestinationSecurityGroupId:
-        Fn::ImportValue: !Ref NodeSecurityGroup
+      GroupId: !Ref ControlPlaneSecurityGroup
+      DestinationSecurityGroupId: !Ref NodeSecurityGroup
       IpProtocol: tcp
       FromPort: 443
       ToPort: 443
@@ -254,10 +244,8 @@ Resources:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       Description: Allow pods to communicate with the cluster API Server
-      GroupId:
-        Fn::ImportValue: !Ref ControlPlaneSecurityGroup
-      SourceSecurityGroupId:
-        Fn::ImportValue: !Ref NodeSecurityGroup
+      GroupId: !Ref ControlPlaneSecurityGroup
+      SourceSecurityGroupId: !Ref NodeSecurityGroup
       IpProtocol: tcp
       ToPort: 443
       FromPort: 443
@@ -326,8 +314,7 @@ Resources:
     Properties:
       LaunchTemplateName: !Sub "eksLaunchTemplate-${AWS::StackName}"
       LaunchTemplateData:
-        SecurityGroupIds:
-           - Fn::ImportValue: !Sub '${ClusterStackName}-NodeSecurityGroup'
+        SecurityGroupIds: !Ref NodeSecurityGroup
         TagSpecifications:
           -
             ResourceType: instance
