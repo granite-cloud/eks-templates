@@ -10,11 +10,15 @@ Metadata:
           - BootstrapArgumentsForOnDemand
           - BootstrapArgumentsForSpotFleet
           - ClusterName
+          - ControlPlaneSecurityGroup
           - Environment
           - EnvSize
           - KeyName
           - NodeGroupName
           - NodeImageId
+          - NodeSecurityGroup
+          - SubnetIds
+          - VPCID
       - Label:
           default: "Auto Scaling Configuration"
         Parameters:
@@ -31,11 +35,6 @@ Metadata:
           default: "TargetGroup"
         Parameters:
           - TargetGroupPort
-      - Label:
-          default: Import Stacks
-        Parameters:
-          - ClusterStackName
-          - VPCStackName
 
 Parameters:
   ASGMinSize:
@@ -71,6 +70,10 @@ Parameters:
     Description: 'Name of the existing EKS Cluster CloudFormation stack to import resources from.'
     Type: String
     Default: 'eks-cluster'
+
+  ControlPlaneSecurityGroup:
+    Description: 'Control Plane Security Group ID'
+    Type: String
 
   Environment:
     Description: 'Name of the environment for this stack.'
@@ -118,6 +121,10 @@ Parameters:
     - t3.large
     ConstraintDescription: must be a valid EC2 instance type.
 
+  NodeSecurityGroup:
+    Description: 'Control Plane Security Group ID'
+    Type: String
+
   OnDemandBaseCapacity:
     Type: Number
     Description: "on-demand base capacity"
@@ -133,15 +140,18 @@ Parameters:
     Description: "spot instance pools(1-20)"
     Default: 1
 
+  SubnetIds:
+   Description: 'Array of Subnets where workers can be created.'
+   Type: List<AWS::EC2::Subnet::Id>
+
   TargetGroupPort:
     Description: The port on which the targets receive traffic from TargetGroup
     Type: String
     Default: 31742
 
-  VPCStackName:
-    Description: 'Name of the existing VPC CloudFormation stack to import resources from.'
+  VPCID:
+    Description: 'VPC ID'
     Type: String
-    Default: 'eks-vpc'
 
 Mappings:
   EnvSize:
@@ -185,9 +195,9 @@ Resources:
     Properties:
       Description: Allow node to communicate with each other
       GroupId:
-         Fn::ImportValue: !Sub '${ClusterStackName}-NodeSecurityGroup'
+         Fn::ImportValue: !Ref NodeSecurityGroup
       SourceSecurityGroupId:
-        Fn::ImportValue: !Sub '${ClusterStackName}-NodeSecurityGroup'
+        Fn::ImportValue: !Ref NodeSecurityGroup
       IpProtocol: '-1'
       FromPort: 0
       ToPort: 65535
@@ -197,9 +207,9 @@ Resources:
     Properties:
       Description: Allow worker Kubelets and pods to receive communication from the cluster control plane
       GroupId:
-         Fn::ImportValue: !Sub '${ClusterStackName}-NodeSecurityGroup'
+         Fn::ImportValue: !Ref NodeSecurityGroup
       SourceSecurityGroupId:
-         Fn::ImportValue: !Sub '${ClusterStackName}-ControlPlaneSecurityGroup'
+         Fn::ImportValue: !Ref ControlPlaneSecurityGroup
       IpProtocol: tcp
       FromPort: 1025
       ToPort: 65535
@@ -209,9 +219,9 @@ Resources:
     Properties:
       Description: Allow the cluster control plane to communicate with worker Kubelet and pods
       GroupId:
-        Fn::ImportValue: !Sub '${ClusterStackName}-ControlPlaneSecurityGroup'
+        Fn::ImportValue: !Ref ControlPlaneSecurityGroup
       DestinationSecurityGroupId:
-        Fn::ImportValue: !Sub '${ClusterStackName}-NodeSecurityGroup'
+        Fn::ImportValue: !Ref NodeSecurityGroup
       IpProtocol: tcp
       FromPort: 1025
       ToPort: 65535
@@ -221,9 +231,9 @@ Resources:
     Properties:
       Description: Allow pods running extension API servers on port 443 to receive communication from cluster control plane
       GroupId:
-         Fn::ImportValue: !Sub '${ClusterStackName}-NodeSecurityGroup'
+         Fn::ImportValue: !Ref NodeSecurityGroup
       SourceSecurityGroupId:
-         Fn::ImportValue: !Sub '${ClusterStackName}-ControlPlaneSecurityGroup'
+         Fn::ImportValue: !Ref ControlPlaneSecurityGroup
       IpProtocol: tcp
       FromPort: 443
       ToPort: 443
@@ -233,9 +243,9 @@ Resources:
     Properties:
       Description: Allow the cluster control plane to communicate with pods running extension API servers on port 443
       GroupId:
-        Fn::ImportValue: !Sub '${ClusterStackName}-ControlPlaneSecurityGroup'
+        Fn::ImportValue: !Ref ControlPlaneSecurityGroup
       DestinationSecurityGroupId:
-        Fn::ImportValue: !Sub '${ClusterStackName}-NodeSecurityGroup'
+        Fn::ImportValue: !Ref NodeSecurityGroup
       IpProtocol: tcp
       FromPort: 443
       ToPort: 443
@@ -245,29 +255,28 @@ Resources:
     Properties:
       Description: Allow pods to communicate with the cluster API Server
       GroupId:
-        Fn::ImportValue: !Sub '${ClusterStackName}-ControlPlaneSecurityGroup'
+        Fn::ImportValue: !Ref ControlPlaneSecurityGroup
       SourceSecurityGroupId:
-        Fn::ImportValue: !Sub '${ClusterStackName}-NodeSecurityGroup'
+        Fn::ImportValue: !Ref NodeSecurityGroup
       IpProtocol: tcp
       ToPort: 443
       FromPort: 443
 
-  TG:
-    Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
-    Properties:
-      HealthCheckIntervalSeconds: 15
-      HealthCheckPath: /
+  #TG:
+  #  Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
+  #  Properties:
+  #    HealthCheckIntervalSeconds: 15
+  #    HealthCheckPath: /
       # HealthCheckPort: String
-      HealthCheckProtocol: HTTP
-      HealthCheckTimeoutSeconds: 5
-      HealthyThresholdCount: 2
-      Name: !Sub "${AWS::StackName}-tg"
-      Port: !Ref TargetGroupPort
-      Protocol: HTTP
-      TargetType: instance
-      UnhealthyThresholdCount: 2
-      VpcId:
-          Fn::ImportValue: !Sub '${VPCStackName}-VPCId'
+  #    HealthCheckProtocol: HTTP
+  #    HealthCheckTimeoutSeconds: 5
+  #    HealthyThresholdCount: 2
+  #    Name: !Sub "${AWS::StackName}-tg"
+  #    Port: !Ref TargetGroupPort
+  #    Protocol: HTTP
+  #    TargetType: instance
+  #    UnhealthyThresholdCount: 2
+  #    VpcId: !Ref VPCID
 
   NodeGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
@@ -292,21 +301,21 @@ Resources:
               - InstanceType: !Select [2, !Split [ ",", !Ref InstanceTypesOverride ] ]
       MinSize: !Ref ASGMinSize
       MaxSize: !Ref ASGMaxSize
-      TargetGroupARNs:
-        - !Ref TG
+      #TargetGroupARNs:
+      #  - !Ref TG
       VPCZoneIdentifier: !Split
         - ','
-        - Fn::ImportValue: !Sub '${VPCStackName}-SubnetsPrivate'
+        - !Ref SubnetIds
       Tags:
       - Key: Name
-        Value: !Sub "${ClusterName}-${NodeGroupName}-ASG-Node"
+        Value: !Sub "${ClusterName}-${NodeGroupName}-ASG"
         PropagateAtLaunch: 'true'
       - Key: !Sub 'kubernetes.io/cluster/${ClusterName}'
         Value: 'owned'
         PropagateAtLaunch: 'true'
     UpdatePolicy:
       AutoScalingRollingUpdate:
-        MinInstancesInService: '0'
+        MinInstancesInService: '1'
         MaxBatchSize: '1'
 
   #####

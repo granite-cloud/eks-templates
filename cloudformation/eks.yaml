@@ -1,5 +1,48 @@
 AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Parent Stack to create nested stacks for EKS cluster, node group, ASG, lambda, and IAM resources.'
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: 'EKS Configuration'
+        Parameters:
+          - ClusterName
+          - Environment
+          - EnvSize
+          - KeyName
+          - LambdaRoleArn
+          - NodeGroupName
+          - NodeImageId
+      - Label:
+          default: 'Auto Scaling Configuration'
+        Parameters:
+          - ASGMinSize
+          - ASGDesiredSize
+          - ASGMaxSize
+          - InstanceTypesOverride
+          - NodeInstanceType
+          - OnDemandBaseCapacity
+      -
+        Label:
+          default: 'Import Stacks'
+        Parameters:
+          - VPCStackName
 Parameters:
+  ASGMinSize:
+    Type: Number
+    Description: Minimum size of Node Group ASG.
+    Default: 1
+
+  ASGDesiredSize:
+    Type: Number
+    Description: Desired size of Node Group ASG.
+    Default: 2
+
+  ASGMaxSize:
+    Type: Number
+    Description: Maximum size of Node Group ASG.
+    Default: 3
+
   ClusterName:
     Description: The cluster name provided when the cluster was created.  If it is incorrect, nodes will not be able to join the cluster.
     Type: String
@@ -7,175 +50,111 @@ Parameters:
   ClusterVersion:
     Description: Cluster Version
     Type: String
-    Default: "latest"
+    Default: 'latest'
     AllowedValues:
-      - "1.10"
-      - "1.11"
-      - "1.12"
-      - "latest"
-    
-  VpcId:
-    Description: The VPC of the worker instances
-    Type: AWS::EC2::VPC::Id
-    
-  # ClusterRoleArn:
-  #   Description: IAM Role Arn
-  #   Type: String
+      - '1.10'
+      - '1.11'
+      - '1.12'
+      - 'latest'
 
-  SubnetIds:
-    Description: Select 3 subnets where workers can be created.
-    #Type: List<AWS::EC2::Subnet::Id>
-    Type: String
-    
-  # SecurityGroupIds:
-  #   Description: The security group of the cluster control plane.
-  #   #Type: List<String>
-  #   Type: String
-    
-  NodeAutoScalingGroupMinSize:
-    Description: ASG min size
-    Type: Number
-    Default: 1
-
-  NodeAutoScalingGroupDesiredSize:
-    Description: ASG desired size
-    Type: Number
-    Default: 4
-    
-  NodeAutoScalingGroupMaxSize:
-    Description: ASG max size
-    Type: Number
-    Default: 5
-    
-  OnDemandBaseCapacity:
-    Type: Number
-    Description: "on-demand base capacity"
-    Default: 2
-    
   InstanceTypesOverride:
     Description: Instance Types Overrides
     Type: String
-    Default: "t3.medium,t3.large,t3.xlarge"
-    
-  ASGAutoAssignPublicIp:
-    Type: String
-    Description: "auto assign public IP address for ASG instances"
-    AllowedValues:
-      - "yes"
-      - "no"
-    Default: "yes"
-    
-  NodeGroupName:
-    Description: Unique identifier for the Node Group.
-    Type: String 
-    Default: "ng1"
+    Default: 't3.medium,t3.large,t3.xlarge'
 
   KeyName:
     Description: The EC2 Key Pair to allow SSH access to the instances
-    Type: AWS::EC2::KeyPair::KeyName
-    
+    Type: String
+    Default: 'dev'
+
   LambdaRoleArn:
     Description: Lambda IAM Role Arn
     Type: String
-    
-  YamlBranch:
-    Description: "stable or dev"
-    Type: String
-    Default: "stable"
 
-Mappings: 
-  LayerArn: 
-    ap-northeast-1: 
-      kubectl: 'arn:aws:lambda:ap-northeast-1:903779448426:layer:eks-kubectl-layer:27'
-    ap-northeast-2:
-      kubectl: 'arn:aws:lambda:ap-northeast-2:903779448426:layer:eks-kubectl-layer:1'
-    ap-southeast-1:
-      kubectl: 'arn:aws:lambda:ap-southeast-1:903779448426:layer:eks-kubectl-layer:1'
-    ap-southeast-2:
-      kubectl: 'arn:aws:lambda:ap-southeast-2:903779448426:layer:eks-kubectl-layer:1'
-    ap-south-1:
-      kubectl: 'arn:aws:lambda:ap-south-1:903779448426:layer:eks-kubectl-layer:1'
+  NodeGroupName:
+    Description: Unique resource identifier for the Node Group.
+    Type: String
+
+  NodeInstanceType:
+    Description: Default EC2 instance type for the node instances.
+    Type: String
+    Default: t3.small
+    AllowedValues:
+    - t3.small
+    - t3.medium
+    - t3.large
+    ConstraintDescription: must be a valid EC2 instance type.
+
+  OnDemandBaseCapacity:
+    Type: Number
+    Description: 'on-demand base capacity'
+    Default: 2
+
+  VPCStackName:
+    Description: 'Name of the existing VPC CloudFormation stack to import resources from.'
+    Type: String
+    Default: 'eks-vpc'
+
+Mappings:
+  LayerArn:
     us-east-1:
-      kubectl: 'arn:aws:lambda:us-east-1:903779448426:layer:eks-kubectl-layer:1'
-    us-west-2:
-      kubectl: 'arn:aws:lambda:us-west-2:903779448426:layer:eks-kubectl-layer:1'
-    us-east-2:
-      kubectl: 'arn:aws:lambda:us-east-2:903779448426:layer:eks-kubectl-layer:2'
-    eu-central-1:
-      kubectl: 'arn:aws:lambda:eu-central-1:903779448426:layer:eks-kubectl-layer:1'
-    eu-west-1:
-      kubectl: 'arn:aws:lambda:eu-west-1:903779448426:layer:eks-kubectl-layer:1'
-    eu-west-2:
-      kubectl: 'arn:aws:lambda:eu-west-2:903779448426:layer:eks-kubectl-layer:1'
-    eu-west-3:
-      kubectl: 'arn:aws:lambda:eu-west-3:903779448426:layer:eks-kubectl-layer:1'
-    cn-north-1:
-      kubectl: 'arn:aws-cn:lambda:cn-north-1:937788672844:layer:eks-kubectl-layer:1'
-    cn-northwest-1:
-      kubectl: 'arn:aws-cn:lambda:cn-northwest-1:937788672844:layer:eks-kubectl-layer:1'
-    
-    
+      kubectl: 'arn:aws:lambda:us-east-1:627177891842:layer:lambda-layer-kubectl:2'
+
 Resources:
-  CL:
+  Cluster:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub "https://s3-us-west-2.amazonaws.com/pahud-cfn-us-west-2/eks-templates/cloudformation/cluster-${YamlBranch}.yaml"
+      TemplateURL: !Sub 'https://granite-eks-playground.s3.amazonaws.com/cluster.yaml'
       Parameters:
-        VpcId: !Ref VpcId
+        VpcId:
+          Fn::ImportValue: !Sub '${VPCStackName}-VPCId'
         ClusterName: !Ref ClusterName
         ClusterVersion: !Ref ClusterVersion
-        # ClusterRoleArn: !Ref ClusterRoleArn
-        SubnetIds: !Ref SubnetIds
-        # SecurityGroupIds: !Ref SecurityGroupIds
-        
+        SubnetIds:
+          Fn::ImportValue: !Sub '${VPCStackName}-SubnetsPrivate'
+
   AMI:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub "https://s3-us-west-2.amazonaws.com/pahud-cfn-us-west-2/eks-templates/cloudformation/ami-${YamlBranch}.yaml"
+      TemplateURL: !Sub 'https://granite-eks-playground.s3.amazonaws.com/ami.yaml'
       Parameters:
         ClusterVersion: !Ref ClusterVersion
-      #   VpcId: !Ref VpcId
-      #   ClusterName: !Ref ClusterName
-      #   # ClusterRoleArn: !Ref ClusterRoleArn
-      #   SubnetIds: !Ref SubnetIds
-      #   # SecurityGroupIds: !Ref SecurityGroupIds
-  NG:
-    DependsOn: 
-      - CL
+
+  NodeGroup:
+    DependsOn:
+      - Cluster
       - AMI
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub "https://s3-us-west-2.amazonaws.com/pahud-cfn-us-west-2/eks-templates/cloudformation/nodegroup-${YamlBranch}.yaml"
+      TemplateURL: !Sub 'https://granite-eks-playground.s3.amazonaws.com/nodegroup-dev.yaml'
       Parameters:
-        VpcId:  !Ref VpcId
-        ClusterControlPlaneSecurityGroup: !GetAtt CL.Outputs.SecurityGroups
+        ClusterControlPlaneSecurityGroup: !GetAtt Cluster.Outputs.ControlSecurityGroup
         ClusterName: !Ref ClusterName
-        KeyName: !Ref KeyName
-        NodeGroupName: !Ref NodeGroupName
-        ASGAutoAssignPublicIp: !Ref ASGAutoAssignPublicIp
         InstanceTypesOverride: !Ref InstanceTypesOverride
-        NodeAutoScalingGroupMinSize: !Ref NodeAutoScalingGroupMinSize
-        NodeAutoScalingGroupDesiredSize: !Ref NodeAutoScalingGroupDesiredSize
-        NodeAutoScalingGroupMaxSize: !Ref NodeAutoScalingGroupMaxSize
-        OnDemandBaseCapacity: !Ref OnDemandBaseCapacity
+        KeyName: !Ref KeyName
         LatestAMIId: !GetAtt AMI.Outputs.AmiId
-        Subnets: !Ref SubnetIds
-        # RootStackName: !Sub "${AWS::StackName}"
-     
-  CM:
-    DependsOn: NG
+        NodeSecurityGroup: !GetAtt Cluster.Outputs.NodeSecurityGroup
+        NodeGroupName: !Ref NodeGroupName
+        ASGMinSize: !Ref ASGMinSize
+        ASGDesiredSize: !Ref ASGDesiredSize
+        ASGMaxSize: !Ref ASGMaxSize
+        OnDemandBaseCapacity: !Ref OnDemandBaseCapacity
+        Subnets:
+          Fn::ImportValue: !Sub '${VPCStackName}-SubnetsPrivate'
+        VpcId:
+          Fn::ImportValue: !Sub '${VPCStackName}-VPCId'
+
+  ConfigMapLambda:
+    DependsOn: NodeGroup
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub "https://s3-us-west-2.amazonaws.com/pahud-cfn-us-west-2/eks-templates/cloudformation/configmap-sar-${YamlBranch}.yaml"
+      TemplateURL: !Sub 'https://granite-eks-playground.s3.amazonaws.com/configmap-sar.yaml'
       Parameters:
-        RootStackName: !Sub "${AWS::StackName}"
         ClusterName: !Ref ClusterName
-        NodeInstanceRoleArn: !GetAtt NG.Outputs.NodeInstanceRoleArn
         LambdaRoleArn: !Ref LambdaRoleArn
         LambdaLayerKubectlArn: !FindInMap
           - LayerArn
           - !Ref 'AWS::Region'
           - kubectl
-        # ApplicationId: !Sub "arn:aws:serverlessrepo:${AWS::Region}:903779448426:applications/eks-auth-update-hook"
-        
-  
+        NodeInstanceRoleArn: !GetAtt NodeGroup.Outputs.NodeInstanceRole
+
