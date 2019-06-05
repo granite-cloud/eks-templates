@@ -22,11 +22,7 @@ Metadata:
           - InstanceTypesOverride
           - NodeInstanceType
           - OnDemandBaseCapacity
-      -
-        Label:
-          default: 'Import Stacks'
-        Parameters:
-          - VPCStackName
+
 Parameters:
   ASGMinSize:
     Type: Number
@@ -89,11 +85,6 @@ Parameters:
     Type: Number
     Description: 'on-demand base capacity'
     Default: 2
-
-  VPCStackName:
-    Description: 'Name of the existing VPC CloudFormation stack to import resources from.'
-    Type: String
-    Default: 'eks-vpc'
 
 Mappings:
   LayerArn:
