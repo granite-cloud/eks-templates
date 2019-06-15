@@ -28,13 +28,10 @@ Metadata:
           - ASGAutoAssignPublicIp
           - InstanceTypesOverride
           - NodeInstanceType
+          - NodeImageId
           - OnDemandBaseCapacity
           - OnDemandPercentageAboveBaseCapacity
           - SpotInstancePools
-      - Label:
-          default: "TargetGroup"
-        Parameters:
-          - TargetGroupPort
 
 Parameters:
   ASGMinSize:
@@ -104,8 +101,7 @@ Parameters:
 
   NodeImageId:
     Description: AMI id for the node instances.
-    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
-    Default: '/eks/ami-eks-latest'
+    Type: String
 
   NodeGroupName:
     Description: Unique resource identifier for the Node Group.
@@ -143,11 +139,6 @@ Parameters:
   SubnetIds:
    Description: 'Array of Subnets where workers can be created.'
    Type: List<AWS::EC2::Subnet::Id>
-
-  TargetGroupPort:
-    Description: The port on which the targets receive traffic from TargetGroup
-    Type: String
-    Default: 31742
 
   VPCID:
     Description: 'VPC ID'
@@ -250,22 +241,6 @@ Resources:
       ToPort: 443
       FromPort: 443
 
-  #TG:
-  #  Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
-  #  Properties:
-  #    HealthCheckIntervalSeconds: 15
-  #    HealthCheckPath: /
-      # HealthCheckPort: String
-  #    HealthCheckProtocol: HTTP
-  #    HealthCheckTimeoutSeconds: 5
-  #    HealthyThresholdCount: 2
-  #    Name: !Sub "${AWS::StackName}-tg"
-  #    Port: !Ref TargetGroupPort
-  #    Protocol: HTTP
-  #    TargetType: instance
-  #    UnhealthyThresholdCount: 2
-  #    VpcId: !Ref VPCID
-
   NodeGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
@@ -289,11 +264,7 @@ Resources:
               - InstanceType: !Select [2, !Split [ ",", !Ref InstanceTypesOverride ] ]
       MinSize: !Ref ASGMinSize
       MaxSize: !Ref ASGMaxSize
-      #TargetGroupARNs:
-      #  - !Ref TG
-      VPCZoneIdentifier: !Split
-        - ','
-        - !Ref SubnetIds
+      VPCZoneIdentifier: !Ref SubnetIds
       Tags:
       - Key: Name
         Value: !Sub "${ClusterName}-${NodeGroupName}-ASG"
@@ -305,6 +276,14 @@ Resources:
       AutoScalingRollingUpdate:
         MinInstancesInService: '1'
         MaxBatchSize: '1'
+        PauseTime: PT15M
+        SuspendProcesses:
+          - HealthCheck
+          - ReplaceUnhealthy
+          - AZRebalance
+          - AlarmNotification
+          - ScheduledActions
+          WaitOnResourceSignals: true
 
   #####
   # Launch Template
@@ -314,7 +293,19 @@ Resources:
     Properties:
       LaunchTemplateName: !Sub "eksLaunchTemplate-${AWS::StackName}"
       LaunchTemplateData:
-        SecurityGroupIds: !Ref NodeSecurityGroup
+        BlockDeviceMappings:
+          - DeviceName: /dev/xvda
+            Ebs:
+              VolumeSize: !FindInMap [EnvSize, !Ref EnvSize, EBSVolumeSize]
+              VolumeType: gp2
+              DeleteOnTermination: 'true'
+        KeyName: !Ref KeyName
+        IamInstanceProfile:
+          Arn: !GetAtt NodeInstanceProfile.Arn
+        ImageId: !Ref NodeImageId
+        InstanceType: !Ref NodeInstanceType
+        SecurityGroupIds:
+          - !Ref NodeSecurityGroup
         TagSpecifications:
           -
             ResourceType: instance
@@ -344,11 +335,6 @@ Resources:
                      --stack  ${AWS::StackName} \
                      --resource NodeGroup  \
                      --region ${AWS::Region}
-        IamInstanceProfile:
-          Arn: !GetAtt NodeInstanceProfile.Arn
-        KeyName: !Ref KeyName
-        ImageId: !Ref NodeImageId
-        InstanceType: !Ref NodeInstanceType
 
 Outputs:
   NodeInstanceRole:

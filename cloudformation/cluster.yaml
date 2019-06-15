@@ -38,10 +38,12 @@ Parameters:
   SubnetIds:
    Description: 'Array of Subnets where workers can be created.'
    Type: List<AWS::EC2::Subnet::Id>
+   ConstraintDescription : 'must be a list of at least two existing subnets associated with at least two different availability zones.'
 
   VPCID:
     Description: 'VPC ID'
     Type: String
+    ConstraintDescription : 'must be the VPC Id of an existing Virtual Private Cloud.'
 
 Conditions:
   CreateCustomVersionCluster: !Not [!Equals [!Ref ClusterVersion, latest]]
@@ -57,9 +59,7 @@ Resources:
       ResourcesVpcConfig:
         SecurityGroupIds:
           - !Ref ControlPlaneSecurityGroup
-        SubnetIds: !Split
-        - ','
-        - !Ref SubnetIds
+        SubnetIds: !Ref SubnetIds
       RoleArn: !GetAtt EksServiceRole.Arn
       # Default version is latest
       Version:
