@@ -1,5 +1,50 @@
 AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Parent Stack to create nested stacks for EKS cluster, node group, ASG, lambda, and IAM resources.'
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: 'EKS Configuration'
+        Parameters:
+          - ClusterName
+          - Environment
+          - EnvSize
+          - KeyName
+          - LambdaRoleArn
+          - NodeGroupName
+          - NodeImageId
+      - Label:
+          default: 'Auto Scaling Configuration'
+        Parameters:
+          - ASGMinSize
+          - ASGDesiredSize
+          - ASGMaxSize
+          - InstanceTypesOverride
+          - NodeInstanceType
+          - OnDemandBaseCapacity
+      - Label:
+          default: 'VPC Configuration'
+        Parameters:
+          - SubnetPrivate
+          - SubnetPublic
+          - VpcCIDR
+
 Parameters:
+  ASGMinSize:
+    Type: Number
+    Description: Minimum size of Node Group ASG.
+    Default: 1
+
+  ASGDesiredSize:
+    Type: Number
+    Description: Desired size of Node Group ASG.
+    Default: 2
+
+  ASGMaxSize:
+    Type: Number
+    Description: Maximum size of Node Group ASG.
+    Default: 3
+
   ClusterName:
     Description: The cluster name provided when the cluster was created.  If it is incorrect, nodes will not be able to join the cluster.
     Type: String
@@ -7,175 +52,141 @@ Parameters:
   ClusterVersion:
     Description: Cluster Version
     Type: String
-    Default: "latest"
+    Default: 'latest'
     AllowedValues:
-      - "1.10"
-      - "1.11"
-      - "1.12"
-      - "latest"
-    
-  VpcId:
-    Description: The VPC of the worker instances
-    Type: AWS::EC2::VPC::Id
-    
-  # ClusterRoleArn:
-  #   Description: IAM Role Arn
-  #   Type: String
+      - '1.10'
+      - '1.11'
+      - '1.12'
+      - 'latest'
 
-  SubnetIds:
-    Description: Select 3 subnets where workers can be created.
-    #Type: List<AWS::EC2::Subnet::Id>
-    Type: String
-    
-  # SecurityGroupIds:
-  #   Description: The security group of the cluster control plane.
-  #   #Type: List<String>
-  #   Type: String
-    
-  NodeAutoScalingGroupMinSize:
-    Description: ASG min size
-    Type: Number
-    Default: 1
-
-  NodeAutoScalingGroupDesiredSize:
-    Description: ASG desired size
-    Type: Number
-    Default: 4
-    
-  NodeAutoScalingGroupMaxSize:
-    Description: ASG max size
-    Type: Number
-    Default: 5
-    
-  OnDemandBaseCapacity:
-    Type: Number
-    Description: "on-demand base capacity"
-    Default: 2
-    
   InstanceTypesOverride:
     Description: Instance Types Overrides
     Type: String
-    Default: "t3.medium,t3.large,t3.xlarge"
-    
-  ASGAutoAssignPublicIp:
-    Type: String
-    Description: "auto assign public IP address for ASG instances"
-    AllowedValues:
-      - "yes"
-      - "no"
-    Default: "yes"
-    
-  NodeGroupName:
-    Description: Unique identifier for the Node Group.
-    Type: String 
-    Default: "ng1"
+    Default: 't3.medium,t3.large,t3.xlarge'
 
   KeyName:
     Description: The EC2 Key Pair to allow SSH access to the instances
-    Type: AWS::EC2::KeyPair::KeyName
-    
+    Type: String
+    Default: 'dev'
+
   LambdaRoleArn:
     Description: Lambda IAM Role Arn
     Type: String
-    
-  YamlBranch:
-    Description: "stable or dev"
-    Type: String
-    Default: "stable"
 
-Mappings: 
-  LayerArn: 
-    ap-northeast-1: 
-      kubectl: 'arn:aws:lambda:ap-northeast-1:903779448426:layer:eks-kubectl-layer:27'
-    ap-northeast-2:
-      kubectl: 'arn:aws:lambda:ap-northeast-2:903779448426:layer:eks-kubectl-layer:1'
-    ap-southeast-1:
-      kubectl: 'arn:aws:lambda:ap-southeast-1:903779448426:layer:eks-kubectl-layer:1'
-    ap-southeast-2:
-      kubectl: 'arn:aws:lambda:ap-southeast-2:903779448426:layer:eks-kubectl-layer:1'
-    ap-south-1:
-      kubectl: 'arn:aws:lambda:ap-south-1:903779448426:layer:eks-kubectl-layer:1'
+  NodeGroupName:
+    Description: Unique resource identifier for the Node Group.
+    Type: String
+    Default: 'green'
+
+  NodeImageId:
+    Description: AMI id for the node instances.
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/eks/ami-eks-latest'
+
+  NodeInstanceType:
+    Description: Default EC2 instance type for the node instances.
+    Type: String
+    Default: t3.small
+    AllowedValues:
+    - t3.small
+    - t3.medium
+    - t3.large
+    ConstraintDescription: must be a valid EC2 instance type.
+
+  OnDemandBaseCapacity:
+    Type: Number
+    Description: 'on-demand base capacity'
+    Default: 2
+
+  SubnetPublic:
+    Description: Comma seperated list of 2 VPC CIDR Blocks for Public Subnets (eg 10.100.2.0/24,10.100.3.0/24)
+    Type: String
+    Default: '10.100.4.0/24,10.100.5.0/24'
+
+  SubnetPrivate:
+    Description: Comma seperated list of 3 VPC CIDR Blocks for Private Subnets (eg 10.100.2.0/24,10.100.3.0/24)
+    Type: String
+    Default: '10.100.1.0/24,10.100.2.0/24,10.100.3.0/24'
+
+  VpcCIDR:
+    Description: Please enter the IP range (CIDR notation) for this VPC
+    Type: String
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: '10.100.0.0/16'
+
+Mappings:
+  LayerArn:
     us-east-1:
-      kubectl: 'arn:aws:lambda:us-east-1:903779448426:layer:eks-kubectl-layer:1'
-    us-west-2:
-      kubectl: 'arn:aws:lambda:us-west-2:903779448426:layer:eks-kubectl-layer:1'
-    us-east-2:
-      kubectl: 'arn:aws:lambda:us-east-2:903779448426:layer:eks-kubectl-layer:2'
-    eu-central-1:
-      kubectl: 'arn:aws:lambda:eu-central-1:903779448426:layer:eks-kubectl-layer:1'
-    eu-west-1:
-      kubectl: 'arn:aws:lambda:eu-west-1:903779448426:layer:eks-kubectl-layer:1'
-    eu-west-2:
-      kubectl: 'arn:aws:lambda:eu-west-2:903779448426:layer:eks-kubectl-layer:1'
-    eu-west-3:
-      kubectl: 'arn:aws:lambda:eu-west-3:903779448426:layer:eks-kubectl-layer:1'
-    cn-north-1:
-      kubectl: 'arn:aws-cn:lambda:cn-north-1:937788672844:layer:eks-kubectl-layer:1'
-    cn-northwest-1:
-      kubectl: 'arn:aws-cn:lambda:cn-northwest-1:937788672844:layer:eks-kubectl-layer:1'
-    
-    
+      kubectl: 'arn:aws:lambda:us-east-1:627177891842:layer:lambda-layer-kubectl:2'
+
 Resources:
-  CL:
+  # Nested Stacks
+
+  ###########
+  # VPC
+  ###########
+  VPC:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub "https://s3-us-west-2.amazonaws.com/pahud-cfn-us-west-2/eks-templates/cloudformation/cluster-${YamlBranch}.yaml"
+      TemplateURL: !Sub 'https://granite-eks-playground.s3.amazonaws.com/vpc.yaml'
       Parameters:
-        VpcId: !Ref VpcId
+        Environment: 'dev'
+        SubnetPrivate: !Ref SubnetPrivate
+        SubnetPublic: !Ref SubnetPublic
+        VpcCIDR: !Ref VpcCIDR
+
+  ###########
+  # EKS Cluster
+  ###########
+  Cluster:
+    DependsOn: VPC
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://granite-eks-playground.s3.amazonaws.com/cluster.yaml'
+      Parameters:
         ClusterName: !Ref ClusterName
         ClusterVersion: !Ref ClusterVersion
-        # ClusterRoleArn: !Ref ClusterRoleArn
-        SubnetIds: !Ref SubnetIds
-        # SecurityGroupIds: !Ref SecurityGroupIds
-        
-  AMI:
+        SubnetIds: !GetAtt VPC.Outputs.SubnetsPrivate
+        VPCID: !GetAtt VPC.Outputs.VPC
+
+  ###########
+  # EKS Worker Nodes
+  ###########
+  NodeGroup:
+    DependsOn: Cluster
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub "https://s3-us-west-2.amazonaws.com/pahud-cfn-us-west-2/eks-templates/cloudformation/ami-${YamlBranch}.yaml"
+      TemplateURL: !Sub 'https://granite-eks-playground.s3.amazonaws.com/nodegroup-dev.yaml'
       Parameters:
-        ClusterVersion: !Ref ClusterVersion
-      #   VpcId: !Ref VpcId
-      #   ClusterName: !Ref ClusterName
-      #   # ClusterRoleArn: !Ref ClusterRoleArn
-      #   SubnetIds: !Ref SubnetIds
-      #   # SecurityGroupIds: !Ref SecurityGroupIds
-  NG:
-    DependsOn: 
-      - CL
-      - AMI
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub "https://s3-us-west-2.amazonaws.com/pahud-cfn-us-west-2/eks-templates/cloudformation/nodegroup-${YamlBranch}.yaml"
-      Parameters:
-        VpcId:  !Ref VpcId
-        ClusterControlPlaneSecurityGroup: !GetAtt CL.Outputs.SecurityGroups
+        ControlPlaneSecurityGroup: !GetAtt Cluster.Outputs.ControlSecurityGroup
         ClusterName: !Ref ClusterName
-        KeyName: !Ref KeyName
-        NodeGroupName: !Ref NodeGroupName
-        ASGAutoAssignPublicIp: !Ref ASGAutoAssignPublicIp
         InstanceTypesOverride: !Ref InstanceTypesOverride
-        NodeAutoScalingGroupMinSize: !Ref NodeAutoScalingGroupMinSize
-        NodeAutoScalingGroupDesiredSize: !Ref NodeAutoScalingGroupDesiredSize
-        NodeAutoScalingGroupMaxSize: !Ref NodeAutoScalingGroupMaxSize
+        KeyName: !Ref KeyName
+        NodeImageId: !Ref NodeImageId
+        NodeSecurityGroup: !GetAtt Cluster.Outputs.NodeSecurityGroup
+        NodeGroupName: !Ref NodeGroupName
+        ASGMinSize: !Ref ASGMinSize
+        ASGDesiredSize: !Ref ASGDesiredSize
+        ASGMaxSize: !Ref ASGMaxSize
         OnDemandBaseCapacity: !Ref OnDemandBaseCapacity
-        LatestAMIId: !GetAtt AMI.Outputs.AmiId
-        Subnets: !Ref SubnetIds
-        # RootStackName: !Sub "${AWS::StackName}"
-     
-  CM:
-    DependsOn: NG
+        SubnetIds: !GetAtt VPC.Outputs.SubnetsPrivate
+        VPCID: !GetAtt VPC.Outputs.VPC
+
+  ###########
+  # Lambda to add the custom IAM role to the k8's auth config map
+  ###########
+  ConfigMapLambda:
+    DependsOn: NodeGroup
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub "https://s3-us-west-2.amazonaws.com/pahud-cfn-us-west-2/eks-templates/cloudformation/configmap-sar-${YamlBranch}.yaml"
+      TemplateURL: !Sub 'https://granite-eks-playground.s3.amazonaws.com/configmap-sar.yaml'
       Parameters:
-        RootStackName: !Sub "${AWS::StackName}"
         ClusterName: !Ref ClusterName
-        NodeInstanceRoleArn: !GetAtt NG.Outputs.NodeInstanceRoleArn
         LambdaRoleArn: !Ref LambdaRoleArn
         LambdaLayerKubectlArn: !FindInMap
           - LayerArn
           - !Ref 'AWS::Region'
           - kubectl
-        # ApplicationId: !Sub "arn:aws:serverlessrepo:${AWS::Region}:903779448426:applications/eks-auth-update-hook"
-        
-  
+        NodeInstanceRoleArn: !GetAtt NodeGroup.Outputs.NodeInstanceRole
+

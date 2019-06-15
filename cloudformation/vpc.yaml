@@ -20,24 +20,23 @@ Parameters:
       - stage
       - prod
     ConstraintDescription: 'Must be a valid environment type.'
+
+  SubnetPublic:
+    Description: 2 Public subnets (CIDR notation)
+    Type: CommaDelimitedList
+
+  SubnetPrivate:
+    Description: 3 Private subnets (CIDR notation)
+    Type: CommaDelimitedList
+
+  VpcCIDR:
+        Description: Please enter the IP range (CIDR notation) for this VPC
+        Type: String
+        AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
+        ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+
 Mappings:
-  EnvMap:
-    dev:
-      VPCSubnet: 10.22.0.0/16
-      SubnetPublic1: 10.22.1.0/24
-      SubnetPublic2: 10.22.2.0/24
-      SubnetPrivate1: 10.22.3.0/24
-      SubnetPrivate2: 10.22.4.0/24
-      SubnetPrivate3: 10.22.5.0/24
-      EnvCode: D
-    prod:
-      VPCSubnet: 10.23.0.0/16
-      SubnetPublic1: 10.23.1.0/24
-      SubnetPublic2: 10.23.2.0/24
-      SubnetPrivate1: 10.23.3.0/24
-      SubnetPrivate2: 10.23.4.0/24
-      SubnetPrivate3: 10.23.5.0/24
-      EnvCode: P
+  # Testing for tag schema
   RegionMap:
     us-east-1:
       RegionCode: UE1
@@ -53,7 +52,7 @@ Resources:
   VPC:
     Type: 'AWS::EC2::VPC'
     Properties:
-      CidrBlock: !FindInMap [EnvMap, !Ref Environment, VPCSubnet]
+      CidrBlock: !Ref VpcCIDR
       EnableDnsHostnames: true
       Tags:
         - Key: Name
@@ -61,7 +60,7 @@ Resources:
             'Fn::Join':
             - '-'
             - - !Ref Environment
-              - !FindInMap [EnvMap, !Ref Environment, VPCSubnet]
+              - !Ref VpcCIDR
 
   # Public Subnets
   SubnetPublic1:
@@ -69,7 +68,7 @@ Resources:
     DependsOn: VPC
     Properties:
       VpcId: !Ref VPC
-      CidrBlock: !FindInMap [EnvMap, !Ref Environment, SubnetPublic1]
+      CidrBlock: !Select [ 0, !Ref SubnetPublic ]
       AvailabilityZone:  !Select [0, !GetAZs ""]
       MapPublicIpOnLaunch: true
       Tags:
@@ -78,7 +77,7 @@ Resources:
             'Fn::Join':
             - '-'
             - - public
-              - !FindInMap [EnvMap, !Ref Environment, SubnetPublic1]
+              - !Select [ 0, !Ref SubnetPublic ]
               - !Select [0, !GetAZs ""]
 
   SubnetPublic2:
@@ -86,7 +85,7 @@ Resources:
     DependsOn: VPC
     Properties:
       VpcId: !Ref VPC
-      CidrBlock: !FindInMap [EnvMap, !Ref Environment, SubnetPublic2]
+      CidrBlock: !Select [ 1, !Ref SubnetPublic ]
       AvailabilityZone:  !Select [1, !GetAZs ""]
       MapPublicIpOnLaunch: true
       Tags:
@@ -95,7 +94,7 @@ Resources:
             'Fn::Join':
             - '-'
             - - public
-              - !FindInMap [EnvMap, !Ref Environment, SubnetPublic2]
+              - !Select [ 1, !Ref SubnetPublic ]
               - !Select [1, !GetAZs ""]
 
   # Private Subnets
@@ -104,7 +103,7 @@ Resources:
     DependsOn: VPC
     Properties:
       VpcId: !Ref VPC
-      CidrBlock: !FindInMap [EnvMap, !Ref Environment, SubnetPrivate1]
+      CidrBlock: !Select [ 0, !Ref SubnetPrivate ]
       AvailabilityZone:  !Select [0, !GetAZs ""]
       MapPublicIpOnLaunch: false
       Tags:
@@ -113,7 +112,7 @@ Resources:
             'Fn::Join':
             - '-'
             - - private
-              - !FindInMap [EnvMap, !Ref Environment, SubnetPrivate1]
+              - !Select [ 0, !Ref SubnetPrivate ]
               - !Select [0, !GetAZs ""]
 
   SubnetPrivate2:
@@ -121,7 +120,7 @@ Resources:
     DependsOn: VPC
     Properties:
       VpcId: !Ref VPC
-      CidrBlock: !FindInMap [EnvMap, !Ref Environment, SubnetPrivate2]
+      CidrBlock: !Select [ 1, !Ref SubnetPrivate ]
       AvailabilityZone:  !Select [1, !GetAZs ""]
       MapPublicIpOnLaunch: false
       Tags:
@@ -130,7 +129,7 @@ Resources:
             'Fn::Join':
             - '-'
             - - private
-              - !FindInMap [EnvMap, !Ref Environment, SubnetPrivate2]
+              - !Select [ 1, !Ref SubnetPrivate ]
               - !Select [1, !GetAZs ""]
 
   SubnetPrivate3:
@@ -138,7 +137,7 @@ Resources:
     DependsOn: VPC
     Properties:
       VpcId: !Ref VPC
-      CidrBlock: !FindInMap [EnvMap, !Ref Environment, SubnetPrivate3]
+      CidrBlock: !Select [ 2, !Ref SubnetPrivate ]
       AvailabilityZone:  !Select [2, !GetAZs ""]
       MapPublicIpOnLaunch: false
       Tags:
@@ -147,7 +146,7 @@ Resources:
             'Fn::Join':
             - '-'
             - - private
-              - !FindInMap [EnvMap, !Ref Environment, SubnetPrivate3]
+              - !Select [ 2, !Ref SubnetPrivate ]
               - !Select [2, !GetAZs ""]
 
   ########
@@ -263,7 +262,7 @@ Resources:
             'Fn::Join':
             - ':'
             - - private
-              - !FindInMap [EnvMap, !Ref Environment, SubnetPrivate1]
+              - !Select [ 0, !Ref SubnetPrivate ]
 
   routetableprivate2:
     Type: 'AWS::EC2::RouteTable'
@@ -276,8 +275,20 @@ Resources:
             'Fn::Join':
             - ':'
             - - private
-              - !FindInMap [EnvMap, !Ref Environment, SubnetPrivate2]
+              - !Select [ 1, !Ref SubnetPrivate ]
 
+  routetableprivate3:
+    Type: 'AWS::EC2::RouteTable'
+    DependsOn: VPC
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value:
+            'Fn::Join':
+            - ':'
+            - - private
+              - !Select [ 2, !Ref SubnetPrivate ]
   ###########
   # Route Table Associations
   ###########
@@ -365,7 +376,7 @@ Outputs:
 
   SubnetsPrivate:
     Description: 'Subnets private.'
-    Value: !Join [',', [!Ref SubnetPrivate1, !Ref SubnetPrivate2]]
+    Value: !Join [',', [!Ref SubnetPrivate1, !Ref SubnetPrivate2, !Ref SubnetPrivate3]]
     Export:
       Name: !Sub '${AWS::StackName}-SubnetsPrivate'
 
@@ -382,6 +393,6 @@ Outputs:
 
   VPCCidr:
     Description: VPC Subnet
-    Value: !FindInMap [EnvMap, !Ref Environment, VPCSubnet]
+    Value: !Ref VpcCIDR
     Export:
       Name: !Sub '${AWS::StackName}-VPCCidr'

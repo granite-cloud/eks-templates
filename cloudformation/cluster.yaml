@@ -10,11 +10,9 @@ Metadata:
           - ClusterName
           - ClusterVersion
           - Environment
+          - SubnetIds
+          - VPCID
 
-      - Label:
-          default: Import Stacks
-        Parameters:
-          - VPCStackName
 Parameters:
   ClusterName:
     Description: The cluster name provided when the cluster was created.  If it is incorrect, nodes will not be able to join the cluster.
@@ -37,10 +35,15 @@ Parameters:
       - dev
       - prod
 
-  VPCStackName:
-    Description: 'Name of the existing VPC CloudFormation stack to import resources from.'
+  SubnetIds:
+   Description: 'Array of Subnets where workers can be created.'
+   Type: List<AWS::EC2::Subnet::Id>
+   ConstraintDescription : 'must be a list of at least two existing subnets associated with at least two different availability zones.'
+
+  VPCID:
+    Description: 'VPC ID'
     Type: String
-    Default: 'eks-vpc'
+    ConstraintDescription : 'must be the VPC Id of an existing Virtual Private Cloud.'
 
 Conditions:
   CreateCustomVersionCluster: !Not [!Equals [!Ref ClusterVersion, latest]]
@@ -56,9 +59,7 @@ Resources:
       ResourcesVpcConfig:
         SecurityGroupIds:
           - !Ref ControlPlaneSecurityGroup
-        SubnetIds: !Split
-        - ','
-        - Fn::ImportValue: !Sub '${VPCStackName}-SubnetsPrivate'
+        SubnetIds: !Ref SubnetIds
       RoleArn: !GetAtt EksServiceRole.Arn
       # Default version is latest
       Version:
@@ -74,16 +75,13 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Cluster communication with worker nodes
-      VpcId:
-        Fn::ImportValue: !Sub '${VPCStackName}-VPCId'
-
+      VpcId: !Ref VPCID
 
   NodeSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Security group for all nodes in the cluster
-      VpcId:
-         Fn::ImportValue: !Sub '${VPCStackName}-VPCId'
+      VpcId: !Ref VPCID
       Tags:
       - Key: !Sub "kubernetes.io/cluster/${ClusterName}"
         Value: 'owned'
@@ -116,29 +114,19 @@ Outputs:
   ClusterArn:
     Description: 'EKS Cluster Arn'
     Value: !GetAtt EKSCluster.Arn
-    Export:
-      Name: !Sub '${AWS::StackName}-EKSClusterArn'
 
   ClusterEndPoint:
     Description: 'EKS Cluster EndPoint'
     Value: !GetAtt EKSCluster.Endpoint
-    Export:
-      Name: !Sub '${AWS::StackName}-EKSClusterEndPoint'
 
   ClusterName:
     Description: 'EKS Cluster Name'
     Value: !Ref EKSCluster
-    Export:
-      Name: !Sub '${AWS::StackName}-EKSClusterName'
 
   ControlSecurityGroup:
     Description: Security group for the cluster control plane
     Value: !Ref ControlPlaneSecurityGroup
-    Export:
-      Name: !Sub '${AWS::StackName}-ControlPlaneSecurityGroup'
 
   NodeSecurityGroup:
     Description: Security group for the nodes
     Value: !Ref NodeSecurityGroup
-    Export:
-      Name: !Sub '${AWS::StackName}-NodeSecurityGroup'
