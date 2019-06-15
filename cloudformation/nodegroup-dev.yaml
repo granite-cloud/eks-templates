@@ -283,7 +283,7 @@ Resources:
           - AZRebalance
           - AlarmNotification
           - ScheduledActions
-          WaitOnResourceSignals: true
+        WaitOnResourceSignals: true
 
   #####
   # Launch Template
