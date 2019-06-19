@@ -36,9 +36,9 @@ Parameters:
       - prod
 
   SubnetIds:
-   Description: 'list of Subnet existing id's where workers can be created.'
-   Type: List<AWS::EC2::Subnet::Id>
-   ConstraintDescription : 'Must be a list of at least two existing subnets associated with at least two different availability zones.'
+    Description: 'list of Subnet existing ids where workers can be created.'
+    Type: List<AWS::EC2::Subnet::Id>
+    ConstraintDescription : 'Must be a list of at least two existing subnets associated with at least two different availability zones.'
 
   VPCID:
     Description: 'VPC ID.'
