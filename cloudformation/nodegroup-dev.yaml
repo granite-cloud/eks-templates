@@ -137,12 +137,14 @@ Parameters:
     Default: 1
 
   SubnetIds:
-   Description: 'Array of Subnets where workers can be created.'
    Type: List<AWS::EC2::Subnet::Id>
+   Description: 'Array of Subnets where workers can be created.'
+   ConstraintDescription : 'Must be a list of at least two existing subnets associated with at least two different availability zones.'
 
   VPCID:
-    Description: 'VPC ID'
-    Type: String
+    Type: AWS::EC2::VPC::Id
+    Description : 'VpcId of your existing Virtual Private Cloud (VPC)'
+    ConstraintDescription : 'Must be the VPC Id of an existing Virtual Private Cloud.'
 
 Mappings:
   EnvSize:
