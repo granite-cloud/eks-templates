@@ -21,12 +21,12 @@ Parameters:
       - prod
     ConstraintDescription: 'Must be a valid environment type.'
 
-  SubnetPublic:
-    Description: 2 Public subnets (CIDR notation)
+  SubnetPrivate:
+    Description: Comma seperated list of 3 Private subnets in CIDR notation (10.2.1.0/24,10.2.2.0/24,....)
     Type: CommaDelimitedList
 
-  SubnetPrivate:
-    Description: 3 Private subnets (CIDR notation)
+  SubnetPublic:
+    Description: Comma seperated list of Public subnets in CIDR notation (Must be 2 for non-prod OR 3 for prod environments)
     Type: CommaDelimitedList
 
   VpcCIDR:
@@ -97,6 +97,24 @@ Resources:
               - !Select [ 1, !Ref SubnetPublic ]
               - !Select [1, !GetAZs ""]
 
+  SubnetPublic3:
+      Type: 'AWS::EC2::Subnet'
+      DependsOn: VPC
+      Condition: IsProd
+      Properties:
+        VpcId: !Ref VPC
+        CidrBlock: !Select [ 2, !Ref SubnetPublic ]
+        AvailabilityZone:  !Select [2, !GetAZs ""]
+        MapPublicIpOnLaunch: true
+        Tags:
+          - Key: Name
+            Value:
+              'Fn::Join':
+              - '-'
+              - - public
+                - !Select [ 2, !Ref SubnetPublic ]
+                - !Select [2, !GetAZs ""]
+
   # Private Subnets
   SubnetPrivate1:
     Type: 'AWS::EC2::Subnet'
@@ -163,6 +181,12 @@ Resources:
     Properties:
       Domain: vpc
 
+  NATEIP3:
+    Type: 'AWS::EC2::EIP'
+    Condition: IsProd
+    Properties:
+      Domain: vpc
+
   NGW1:
     Type: 'AWS::EC2::NatGateway'
     DependsOn:
@@ -183,6 +207,28 @@ Resources:
         - NATEIP2
         - AllocationId
       SubnetId: !Ref  SubnetPublic2
+
+  NGW2:
+    Type: 'AWS::EC2::NatGateway'
+    Condition: IsProd
+    DependsOn:
+     - SubnetPublic2
+    Properties:
+     AllocationId: !GetAtt
+       - NATEIP3
+       - AllocationId
+     SubnetId: !Ref  SubnetPublic2
+
+  NGW3:
+    Type: 'AWS::EC2::NatGateway'
+    Condition: IsProd
+    DependsOn:
+     - SubnetPublic3
+    Properties:
+     AllocationId: !GetAtt
+       - NATEIP2
+       - AllocationId
+     SubnetId: !Ref  SubnetPublic3
 
   NATRoute1:
     Type: 'AWS::EC2::Route'
@@ -215,6 +261,15 @@ Resources:
     Properties:
       NatGatewayId: !Ref NGW2
       RouteTableId: !Ref routetableprivate2
+      DestinationCidrBlock: 0.0.0.0/0
+
+  NATRoute3:
+    Type: 'AWS::EC2::Route'
+    Condition: IsProd
+    DependsOn:  NGW3
+    Properties:
+      NatGatewayId: !Ref NGW3
+      RouteTableId: !Ref routetableprivate3
       DestinationCidrBlock: 0.0.0.0/0
 
   #########
@@ -303,7 +358,12 @@ Resources:
     Properties:
       SubnetId: !Ref  SubnetPublic2
       RouteTableId: !Ref routetablepublic
-
+  ba:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Condition: IsProd
+    Properties:
+      SubnetId: !Ref  SubnetPublic3
+      RouteTableId: !Ref routetablepublic
   c:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
@@ -314,6 +374,12 @@ Resources:
     Properties:
       SubnetId: !Ref SubnetPrivate2
       RouteTableId: !Ref routetableprivate2
+
+  e:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref SubnetPrivate3
+      RouteTableId: !Ref routetableprivate3
 
   ###########
   # Security Groups
@@ -374,6 +440,13 @@ Outputs:
     Export:
       Name: !Sub '${AWS::StackName}-SubnetPublic2'
 
+  SubnetPublic3:
+    Condition: IsProd
+    Description: Public Subnet 3
+    Value: !Ref SubnetPublic3
+    Export:
+      Name: !Sub '${AWS::StackName}-SubnetPublic3'
+
   SubnetsPrivate:
     Description: 'Subnets private.'
     Value: !Join [',', [!Ref SubnetPrivate1, !Ref SubnetPrivate2, !Ref SubnetPrivate3]]
@@ -382,7 +455,7 @@ Outputs:
 
   SubnetsPublic:
     Description: 'Subnets public.'
-    Value: !Join [',', [!Ref SubnetPublic1, !Ref SubnetPublic2]]
+    Value:  !If [IsProd, !Join [',', [!Ref SubnetPublic1, !Ref SubnetPublic2, !Ref SubnetPublic3]], !Join [',', [!Ref SubnetPublic1, !Ref SubnetPublic2]]]
     Export:
       Name: !Sub '${AWS::StackName}-SubnetsPublic'
   VPC:
