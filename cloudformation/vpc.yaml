@@ -449,13 +449,13 @@ Outputs:
 
   SubnetsPrivate:
     Description: 'Subnets private.'
-    Value: !Join [',', !Ref "SubnetPrivate"]
+    Value: !Join [',', [!Ref SubnetPrivate1, !Ref SubnetPrivate2, !Ref SubnetPrivate3]]
     Export:
       Name: !Sub '${AWS::StackName}-SubnetsPrivate'
 
   SubnetsPublic:
     Description: 'Subnets public.'
-    Value: !Join [',', !Ref "SubnetPublic"]
+    Value:  !If [IsProd, !Join [',', [!Ref SubnetPublic1, !Ref SubnetPublic2, !Ref SubnetPublic3]], !Join [',', [!Ref SubnetPublic1, !Ref SubnetPublic2]]]
     Export:
       Name: !Sub '${AWS::StackName}-SubnetsPublic'
   VPC:
