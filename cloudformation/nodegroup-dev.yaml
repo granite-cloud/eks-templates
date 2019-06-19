@@ -101,7 +101,8 @@ Parameters:
 
   NodeImageId:
     Description: AMI id for the node instances.
-    Type: String
+    Type : 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: ‘/eks/ami-eks-latest’
 
   NodeGroupName:
     Description: Unique resource identifier for the Node Group.
@@ -118,7 +119,7 @@ Parameters:
     ConstraintDescription: must be a valid EC2 instance type.
 
   NodeSecurityGroup:
-    Description: 'Control Plane Security Group ID'
+    Description: 'Node Security Group ID'
     Type: String
 
   OnDemandBaseCapacity:

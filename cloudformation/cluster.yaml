@@ -75,13 +75,13 @@ Resources:
   ControlPlaneSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Cluster communication with worker nodes
+      GroupDescription: Control Plane Group
       VpcId: !Ref VPCID
 
   NodeSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Security group for all nodes in the cluster
+      GroupDescription: Node Group
       VpcId: !Ref VPCID
       Tags:
       - Key: !Sub "kubernetes.io/cluster/${ClusterName}"
