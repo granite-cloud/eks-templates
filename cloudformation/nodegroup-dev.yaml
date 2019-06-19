@@ -101,8 +101,8 @@ Parameters:
 
   NodeImageId:
     Description: AMI id for the node instances.
-    Type : 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
-    Default: ‘/eks/ami-eks-latest’
+    Type : AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /eks/ami-eks-latest
 
   NodeGroupName:
     Description: Unique resource identifier for the Node Group.
