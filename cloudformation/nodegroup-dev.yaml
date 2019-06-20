@@ -64,16 +64,16 @@ Parameters:
     Type: String
 
   ClusterStackName:
-    Description: 'Name of the existing EKS Cluster CloudFormation stack to import resources from.'
+    Description: Name of the existing EKS Cluster CloudFormation stack to import resources from.
     Type: String
     Default: 'eks-cluster'
 
   ControlPlaneSecurityGroup:
-    Description: 'Control Plane Security Group ID'
+    Description: Control Plane Security Group ID
     Type: String
 
   Environment:
-    Description: 'Name of the environment for this stack.'
+    Description: Name of the environment for this stack.
     Type: String
     Default: dev
     AllowedValues:
@@ -105,22 +105,22 @@ Parameters:
     Default: '/eks/ami-eks-latest'
 
   NodeGroupName:
-    Description: 'Unique name for the node group name used in naming schema'
+    Description: Unique name for the node group name used in naming schema
     Type: String
 
   NodeSecurityGroup:
-    Description: 'Node Security Group ID'
+    Description: Node Security Group ID
     Type: String
-    
+
   SubnetIds:
-    Description: 'list of Subnet existing ids where workers can be created.'
+    Description: list of Subnet existing ids where workers can be created.
     Type: List<AWS::EC2::Subnet::Id>
     ConstraintDescription : 'Must be a list of subnets associated with at least two different availability zones.'
 
   VPCID:
     Description: 'VPC ID.'
     Type: AWS::EC2::VPC::Id
-    Description : 'VpcId of your existing Virtual Private Cloud (VPC)'
+    Description : VpcId of your existing Virtual Private Cloud (VPC)
     ConstraintDescription : 'Must be the VPC Id of an existing Virtual Private Cloud.'
 
 Mappings:
