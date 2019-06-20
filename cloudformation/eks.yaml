@@ -8,20 +8,13 @@ Metadata:
         Parameters:
           - ClusterName
           - Environment
-          - EnvSize
           - KeyName
           - LambdaRoleArn
           - NodeGroupName
-          - NodeImageId
       - Label:
           default: 'Auto Scaling Configuration'
         Parameters:
-          - ASGMinSize
-          - ASGDesiredSize
-          - ASGMaxSize
-          - InstanceTypesOverride
           - NodeInstanceType
-          - OnDemandBaseCapacity
       - Label:
           default: 'VPC Configuration'
         Parameters:
@@ -30,24 +23,10 @@ Metadata:
           - VpcCIDR
 
 Parameters:
-  ASGMinSize:
-    Type: Number
-    Description: Minimum size of Node Group ASG.
-    Default: 1
-
-  ASGDesiredSize:
-    Type: Number
-    Description: Desired size of Node Group ASG.
-    Default: 2
-
-  ASGMaxSize:
-    Type: Number
-    Description: Maximum size of Node Group ASG.
-    Default: 3
-
   ClusterName:
-    Description: The cluster name provided when the cluster was created.  If it is incorrect, nodes will not be able to join the cluster.
+    Description: The name of the eks-cluster that will be provisioned
     Type: String
+    Default: eks-cluster
 
   ClusterVersion:
     Description: Cluster Version
@@ -59,11 +38,6 @@ Parameters:
       - '1.12'
       - 'latest'
 
-  InstanceTypesOverride:
-    Description: Instance Types Overrides
-    Type: String
-    Default: 't3.medium,t3.large,t3.xlarge'
-
   KeyName:
     Description: The EC2 Key Pair to allow SSH access to the instances
     Type: String
@@ -72,40 +46,21 @@ Parameters:
   LambdaRoleArn:
     Description: Lambda IAM Role Arn
     Type: String
+    Default: arn:aws:iam::627177891842:role/AmazonEKSAdminRole
 
   NodeGroupName:
     Description: Unique resource identifier for the Node Group.
     Type: String
-    Default: 'green'
-
-  NodeImageId:
-    Description: AMI id for the node instances.
-    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
-    Default: '/eks/ami-eks-latest'
-
-  NodeInstanceType:
-    Description: Default EC2 instance type for the node instances.
-    Type: String
-    Default: t3.small
-    AllowedValues:
-    - t3.small
-    - t3.medium
-    - t3.large
-    ConstraintDescription: must be a valid EC2 instance type.
-
-  OnDemandBaseCapacity:
-    Type: Number
-    Description: 'on-demand base capacity'
-    Default: 2
+    Default: green
 
   SubnetPublic:
     Description: Comma seperated list of 2 VPC CIDR Blocks for Public Subnets (eg 10.100.2.0/24,10.100.3.0/24)
-    Type: String
+    Type: CommaDelimitedList
     Default: '10.100.4.0/24,10.100.5.0/24'
 
   SubnetPrivate:
     Description: Comma seperated list of 3 VPC CIDR Blocks for Private Subnets (eg 10.100.2.0/24,10.100.3.0/24)
-    Type: String
+    Type: CommaDelimitedList
     Default: '10.100.1.0/24,10.100.2.0/24,10.100.3.0/24'
 
   VpcCIDR:
@@ -159,17 +114,11 @@ Resources:
     Properties:
       TemplateURL: !Sub 'https://granite-eks-playground.s3.amazonaws.com/nodegroup-dev.yaml'
       Parameters:
-        ControlPlaneSecurityGroup: !GetAtt Cluster.Outputs.ControlSecurityGroup
         ClusterName: !Ref ClusterName
-        InstanceTypesOverride: !Ref InstanceTypesOverride
+        ControlPlaneSecurityGroup: !GetAtt Cluster.Outputs.ControlSecurityGroup
         KeyName: !Ref KeyName
-        NodeImageId: !Ref NodeImageId
         NodeSecurityGroup: !GetAtt Cluster.Outputs.NodeSecurityGroup
         NodeGroupName: !Ref NodeGroupName
-        ASGMinSize: !Ref ASGMinSize
-        ASGDesiredSize: !Ref ASGDesiredSize
-        ASGMaxSize: !Ref ASGMaxSize
-        OnDemandBaseCapacity: !Ref OnDemandBaseCapacity
         SubnetIds: !GetAtt VPC.Outputs.SubnetsPrivate
         VPCID: !GetAtt VPC.Outputs.VPC
 
@@ -189,4 +138,3 @@ Resources:
           - !Ref 'AWS::Region'
           - kubectl
         NodeInstanceRoleArn: !GetAtt NodeGroup.Outputs.NodeInstanceRole
-
