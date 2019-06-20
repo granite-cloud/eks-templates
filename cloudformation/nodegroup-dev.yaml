@@ -63,11 +63,6 @@ Parameters:
     Description: The cluster name provided when the cluster was created.  If it is incorrect, nodes will not be able to join the cluster.
     Type: String
 
-  ClusterStackName:
-    Description: Name of the existing EKS Cluster CloudFormation stack to import resources from.
-    Type: String
-    Default: 'eks-cluster'
-
   ControlPlaneSecurityGroup:
     Description: Control Plane Security Group ID
     Type: String
@@ -136,7 +131,7 @@ Parameters:
     Type: Number
     Description: "spot instance pools(1-20)"
     Default: 1
-    
+
   SubnetIds:
     Description: list of Subnet existing ids where workers can be created.
     Type: List<AWS::EC2::Subnet::Id>
