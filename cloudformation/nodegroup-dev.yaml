@@ -104,6 +104,16 @@ Parameters:
     Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
     Default: '/eks/ami-eks-latest'
 
+  NodeInstanceType:
+    Description: Default EC2 instance type for the node instances.
+    Type: String
+    Default: t3.small
+    AllowedValues:
+    - t3.small
+    - t3.medium
+    - t3.large
+    ConstraintDescription: must be a valid EC2 instance type.
+
   NodeGroupName:
     Description: Unique name for the node group name used in naming schema
     Type: String
