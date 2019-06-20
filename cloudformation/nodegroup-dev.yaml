@@ -81,7 +81,7 @@ Parameters:
       - prod
 
   EnvSize:
-    Description: 'This will determine the instance size used.'
+    Description: This will determine the instance size used.
     Type: String
     Default: 'Small'
     AllowedValues:
@@ -92,7 +92,7 @@ Parameters:
 
   InstanceTypesOverride:
     Type: String
-    Description: "multiple spot instances to override(seperated by comma)"
+    Description: multiple spot instances to override(seperated by comma)
     Default: "t3.medium,t3.large,t3.xlarge"
 
   KeyName:
@@ -103,6 +103,25 @@ Parameters:
     Description: AMI id for the node instances.
     Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
     Default: '/eks/ami-eks-latest'
+
+  NodeGroupName:
+    Description: 'Unique name for the node group name used in naming schema'
+    Type: String
+
+  NodeSecurityGroup:
+    Description: 'Node Security Group ID'
+    Type: String
+    
+  SubnetIds:
+    Description: 'list of Subnet existing ids where workers can be created.'
+    Type: List<AWS::EC2::Subnet::Id>
+    ConstraintDescription : 'Must be a list of subnets associated with at least two different availability zones.'
+
+  VPCID:
+    Description: 'VPC ID.'
+    Type: AWS::EC2::VPC::Id
+    Description : 'VpcId of your existing Virtual Private Cloud (VPC)'
+    ConstraintDescription : 'Must be the VPC Id of an existing Virtual Private Cloud.'
 
 Mappings:
   EnvSize:
