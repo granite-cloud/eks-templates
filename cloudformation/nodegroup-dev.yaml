@@ -122,6 +122,21 @@ Parameters:
     Description: Node Security Group ID
     Type: String
 
+  OnDemandBaseCapacity:
+    Type: Number
+    Description: "on-demand base capacity"
+    Default: 2
+
+  OnDemandPercentageAboveBaseCapacity:
+    Type: Number
+    Description: "on-demand percentage above base capacity(0-100)"
+    Default: 0
+
+  SpotInstancePools:
+    Type: Number
+    Description: "spot instance pools(1-20)"
+    Default: 1
+    
   SubnetIds:
     Description: list of Subnet existing ids where workers can be created.
     Type: List<AWS::EC2::Subnet::Id>
