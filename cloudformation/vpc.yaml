@@ -254,6 +254,15 @@ Resources:
       RouteTableId: !Ref routetableprivate2
       DestinationCidrBlock: 0.0.0.0/0
 
+  NATRoute1b:
+    Type: 'AWS::EC2::Route'
+    Condition: NotProd
+    DependsOn: NGW1
+    Properties:
+      NatGatewayId: !Ref NGW1
+      RouteTableId: !Ref routetableprivate3
+      DestinationCidrBlock: 0.0.0.0/0
+
   NATRoute2:
     Type: 'AWS::EC2::Route'
     Condition: IsProd
