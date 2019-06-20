@@ -4,10 +4,6 @@ Parameters:
     Type: String
     Default: default
 
-  FunctionName:
-    Type: String
-    Default: defaultFunc
-
   NodeInstanceRoleArn:
     Type: String
 
@@ -49,10 +45,8 @@ Outputs:
 
   LambdaFuncName:
     Description: Lambda Func Name
-    Value: !Ref FunctionName
+    Value: !Sub "eks-auth-update-hook-${AWS::StackName}"
 
   Result:
     Description: ConfigMap updat result
     Value: !GetAtt UpdateCM.Result
-
-
