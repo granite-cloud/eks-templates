@@ -53,11 +53,6 @@ Parameters:
     Type: String
     Default: 'dev'
 
-  KubeAdminRole:
-    Description: The arn of the eks kube admin role that should already exist
-    Type: String
-    Default: 'arn:aws:iam::627177891842:role/AmazonEKSAdminRole'
-
   NodeGroupName:
     Description: Unique resource identifier for the Node Group.
     Type: String
@@ -84,6 +79,9 @@ Mappings:
   LayerArn:
     us-east-1:
       kubectl: arn:aws:lambda:us-east-1:627177891842:layer:lambda-layer-kubectl:2
+  KubeAdminRole:
+    us-east-1:
+      kubeadmin: arn:aws:iam::627177891842:role/AmazonEKSAdminRole
 Conditions:
   IsDev: !Equals [!Ref Environment, dev]
   IsProd: !Equals [!Ref Environment, prod]
@@ -150,8 +148,11 @@ Resources:
       Parameters:
         ClusterName: !Ref ClusterName
         LambdaRoleArn: !FindInMap
+          - KubeAdminRole
+          - !Ref 'AWS::Region'
+          - kubeadmin
+        LambdaLayerKubectlArn: !FindInMap
           - LayerArn
           - !Ref 'AWS::Region'
           - kubectl
-        LambdaLayerKubectlArn: !Ref KubeAdminRole
         NodeInstanceRoleArn: !GetAtt NodeGroup.Outputs.NodeInstanceRole
