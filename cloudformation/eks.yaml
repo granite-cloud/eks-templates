@@ -9,7 +9,6 @@ Metadata:
           - ClusterName
           - Environment
           - KeyName
-          - LambdaRoleArn
           - NodeGroupName
       - Label:
           default: 'Auto Scaling Configuration'
@@ -37,6 +36,17 @@ Parameters:
       - '1.11'
       - '1.12'
       - 'latest'
+
+  Environment:
+    Description: 'Name of the environment for this stack.'
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - qa
+      - stage
+      - prod
+    ConstraintDescription: 'Must be a valid environment type.'
 
   KeyName:
     Description: The EC2 Key Pair to allow SSH access to the instances
