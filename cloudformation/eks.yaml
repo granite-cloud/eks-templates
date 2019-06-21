@@ -38,7 +38,7 @@ Parameters:
       - 'latest'
 
   Environment:
-    Description: 'Name of the environment for this stack.'
+    Description: Name of the environment for this stack.
     Type: String
     Default: dev
     AllowedValues:
@@ -48,10 +48,20 @@ Parameters:
       - prod
     ConstraintDescription: 'Must be a valid environment type.'
 
+  FunctionName:
+    Description: Unique name used in name schema of the serverless app ConfigMap hook for aws-auth-cm
+    Type: String
+    Default: defaultFunc
+
   KeyName:
     Description: The EC2 Key Pair to allow SSH access to the instances
     Type: String
     Default: 'dev'
+
+  KubeAdminRole:
+    Description: The K8s admin IAM role that will be used to create and manage the EKS cluster
+    Type: String
+    Default: arn:aws:iam::627177891842:role/AmazonEKSAdminRole
 
   NodeGroupName:
     Description: Unique resource identifier for the Node Group.
@@ -76,12 +86,9 @@ Parameters:
     Default: '10.100.0.0/16'
 
 Mappings:
-  LayerArn:
+  RegionMap:
     us-east-1:
-      kubectl: arn:aws:lambda:us-east-1:627177891842:layer:lambda-layer-kubectl:2
-  KubeAdminRole:
-    us-east-1:
-      kubeadmin: arn:aws:iam::627177891842:role/AmazonEKSAdminRole
+      kubelayer: arn:aws:lambda:us-east-1:627177891842:layer:lambda-layer-kubectl:2
 Conditions:
   IsDev: !Equals [!Ref Environment, dev]
   IsProd: !Equals [!Ref Environment, prod]
@@ -141,18 +148,12 @@ Resources:
   ###########
   ConfigMapLambda:
     DependsOn: NodeGroup
+    DeletionPolicy: Retain
     Type: AWS::CloudFormation::Stack
-    DeletionPolicy : Retain
     Properties:
       TemplateURL: !Sub 'https://granite-eks-playground.s3.amazonaws.com/configmap-sar.yaml'
       Parameters:
         ClusterName: !Ref ClusterName
-        LambdaRoleArn: !FindInMap
-          - KubeAdminRole
-          - !Ref 'AWS::Region'
-          - kubeadmin
-        LambdaLayerKubectlArn: !FindInMap
-          - LayerArn
-          - !Ref 'AWS::Region'
-          - kubectl
+        LambdaLayerKubectlArn: !FindInMap [RegionMap, !Ref "AWS::Region", kubelayer]
+        LambdaRoleArn: !Ref KubeAdminRole
         NodeInstanceRoleArn: !GetAtt NodeGroup.Outputs.NodeInstanceRole
