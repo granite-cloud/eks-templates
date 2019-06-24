@@ -109,6 +109,19 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
         - arn:aws:iam::aws:policy/AmazonEKSServicePolicy
+      # https://medium.com/faun/aws-eks-the-role-is-not-authorized-to-perform-ec2-describeaccountattributes-error-1c6474781b84
+      # The below inline policy is to work around a known issue with new eks cluster trying to create an elb the first time.
+      # If the below permission is not given the elb will fail to be created with an iam permission error.
+      # Note: I have not tested using an ALB ingress yet as this may not apply..
+      Policies:
+        - PolicyName: describe-accounts-workaround
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Resource: *
+                Effect: Allow
+                Action:
+                  - ec2:DescribeAccountAttributes
       RoleName: !Sub "EksSvcRole-${AWS::StackName}"
 
 Outputs:
