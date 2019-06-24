@@ -426,10 +426,10 @@ Outputs:
       Name: !Sub '${AWS::StackName}-AZD'
 
   SubnetsCluster:
-    Description: 'Subnets public.'
+    Description: 'All vpc subnets'
     Value:  !If [IsProd, !Join [',', [!Ref SubnetPublic1, !Ref SubnetPublic2, !Ref SubnetPublic3, !Ref SubnetPrivate1, !Ref SubnetPrivate2, !Ref SubnetPrivate3 ]], !Join [',', [!Ref SubnetPublic1, !Ref SubnetPublic2, !Ref SubnetPrivate1, !Ref SubnetPrivate2, !Ref SubnetPrivate3]]]
     Export:
-      Name: !Sub '${AWS::StackName}-SubnetsPublic'
+      Name: !Sub '${AWS::StackName}-SubnetsCluster'
 
   SubnetPrivate1:
     Description: Private Subnet 1

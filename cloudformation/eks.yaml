@@ -123,7 +123,7 @@ Resources:
       Parameters:
         ClusterName: !Ref ClusterName
         ClusterVersion: !Ref ClusterVersion
-        SubnetIds: !GetAtt VPC.Outputs.SubnetsPrivate
+        SubnetIds: !GetAtt VPC.Outputs.SubnetsCluster
         VPCID: !GetAtt VPC.Outputs.VPC
 
   ###########
