@@ -208,17 +208,6 @@ Resources:
         - AllocationId
       SubnetId: !Ref  SubnetPublic2
 
-  NGW2:
-    Type: 'AWS::EC2::NatGateway'
-    Condition: IsProd
-    DependsOn:
-     - SubnetPublic2
-    Properties:
-     AllocationId: !GetAtt
-       - NATEIP3
-       - AllocationId
-     SubnetId: !Ref  SubnetPublic2
-
   NGW3:
     Type: 'AWS::EC2::NatGateway'
     Condition: IsProd
@@ -226,7 +215,7 @@ Resources:
      - SubnetPublic3
     Properties:
      AllocationId: !GetAtt
-       - NATEIP2
+       - NATEIP3
        - AllocationId
      SubnetId: !Ref  SubnetPublic3
 
@@ -289,6 +278,7 @@ Resources:
     DependsOn:
       - SubnetPublic1
       - SubnetPublic2
+      - SubnetPublic3
 
   IGAttach:
     Type: 'AWS::EC2::VPCGatewayAttachment'
@@ -367,24 +357,25 @@ Resources:
     Properties:
       SubnetId: !Ref  SubnetPublic2
       RouteTableId: !Ref routetablepublic
-  ba:
+  c:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Condition: IsProd
     Properties:
       SubnetId: !Ref  SubnetPublic3
       RouteTableId: !Ref routetablepublic
-  c:
+
+  d:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
       SubnetId: !Ref SubnetPrivate1
       RouteTableId: !Ref routetableprivate1
-  d:
+  e:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
       SubnetId: !Ref SubnetPrivate2
       RouteTableId: !Ref routetableprivate2
 
-  e:
+  f:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
       SubnetId: !Ref SubnetPrivate3
@@ -424,6 +415,12 @@ Outputs:
     Value: !Select [3, !GetAZs '']
     Export:
       Name: !Sub '${AWS::StackName}-AZD'
+
+  SubnetsCluster:
+    Description: 'All vpc subnets'
+    Value:  !If [IsProd, !Join [',', [!Ref SubnetPublic1, !Ref SubnetPublic2, !Ref SubnetPublic3, !Ref SubnetPrivate1, !Ref SubnetPrivate2, !Ref SubnetPrivate3 ]], !Join [',', [!Ref SubnetPublic1, !Ref SubnetPublic2, !Ref SubnetPrivate1, !Ref SubnetPrivate2, !Ref SubnetPrivate3]]]
+    Export:
+      Name: !Sub '${AWS::StackName}-SubnetsCluster'
 
   SubnetPrivate1:
     Description: Private Subnet 1

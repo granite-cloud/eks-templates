@@ -8,20 +8,12 @@ Metadata:
         Parameters:
           - ClusterName
           - Environment
-          - EnvSize
           - KeyName
-          - LambdaRoleArn
           - NodeGroupName
-          - NodeImageId
       - Label:
           default: 'Auto Scaling Configuration'
         Parameters:
-          - ASGMinSize
-          - ASGDesiredSize
-          - ASGMaxSize
-          - InstanceTypesOverride
           - NodeInstanceType
-          - OnDemandBaseCapacity
       - Label:
           default: 'VPC Configuration'
         Parameters:
@@ -30,24 +22,10 @@ Metadata:
           - VpcCIDR
 
 Parameters:
-  ASGMinSize:
-    Type: Number
-    Description: Minimum size of Node Group ASG.
-    Default: 1
-
-  ASGDesiredSize:
-    Type: Number
-    Description: Desired size of Node Group ASG.
-    Default: 2
-
-  ASGMaxSize:
-    Type: Number
-    Description: Maximum size of Node Group ASG.
-    Default: 3
-
   ClusterName:
-    Description: The cluster name provided when the cluster was created.  If it is incorrect, nodes will not be able to join the cluster.
+    Description: The name of the eks-cluster that will be provisioned
     Type: String
+    Default: eks-cluster
 
   ClusterVersion:
     Description: Cluster Version
@@ -59,53 +37,45 @@ Parameters:
       - '1.12'
       - 'latest'
 
-  InstanceTypesOverride:
-    Description: Instance Types Overrides
+  Environment:
+    Description: Name of the environment for this stack.
     Type: String
-    Default: 't3.medium,t3.large,t3.xlarge'
+    Default: dev
+    AllowedValues:
+      - dev
+      - qa
+      - stage
+      - prod
+    ConstraintDescription: 'Must be a valid environment type.'
+
+  FunctionName:
+    Description: Unique name used in name schema of the serverless app ConfigMap hook for aws-auth-cm
+    Type: String
+    Default: defaultFunc
 
   KeyName:
     Description: The EC2 Key Pair to allow SSH access to the instances
     Type: String
     Default: 'dev'
 
-  LambdaRoleArn:
-    Description: Lambda IAM Role Arn
+  KubeAdminRole:
+    Description: The K8s admin IAM role that will be used to create and manage the EKS cluster
     Type: String
+    Default: arn:aws:iam::627177891842:role/AmazonEKSAdminRole
 
   NodeGroupName:
     Description: Unique resource identifier for the Node Group.
     Type: String
-    Default: 'green'
-
-  NodeImageId:
-    Description: AMI id for the node instances.
-    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
-    Default: '/eks/ami-eks-latest'
-
-  NodeInstanceType:
-    Description: Default EC2 instance type for the node instances.
-    Type: String
-    Default: t3.small
-    AllowedValues:
-    - t3.small
-    - t3.medium
-    - t3.large
-    ConstraintDescription: must be a valid EC2 instance type.
-
-  OnDemandBaseCapacity:
-    Type: Number
-    Description: 'on-demand base capacity'
-    Default: 2
+    Default: green
 
   SubnetPublic:
     Description: Comma seperated list of 2 VPC CIDR Blocks for Public Subnets (eg 10.100.2.0/24,10.100.3.0/24)
-    Type: String
+    Type: CommaDelimitedList
     Default: '10.100.4.0/24,10.100.5.0/24'
 
   SubnetPrivate:
     Description: Comma seperated list of 3 VPC CIDR Blocks for Private Subnets (eg 10.100.2.0/24,10.100.3.0/24)
-    Type: String
+    Type: CommaDelimitedList
     Default: '10.100.1.0/24,10.100.2.0/24,10.100.3.0/24'
 
   VpcCIDR:
@@ -116,10 +86,16 @@ Parameters:
     Default: '10.100.0.0/16'
 
 Mappings:
-  LayerArn:
+  RegionMap:
     us-east-1:
-      kubectl: 'arn:aws:lambda:us-east-1:627177891842:layer:lambda-layer-kubectl:2'
-
+      kubelayer: arn:aws:lambda:us-east-1:627177891842:layer:lambda-layer-kubectl:2
+Conditions:
+  IsDev: !Equals [!Ref Environment, dev]
+  IsProd: !Equals [!Ref Environment, prod]
+  IsQA:  !Equals [!Ref Environment, qa]
+  IsStage:  !Equals [!Ref Environment, stage]
+  IsProdOrStage: !Or [Condition: IsProd, Condition: IsStage]
+  NotProd: !Not [!Equals [!Ref Environment, prod]]
 Resources:
   # Nested Stacks
 
@@ -131,9 +107,9 @@ Resources:
     Properties:
       TemplateURL: !Sub 'https://granite-eks-playground.s3.amazonaws.com/vpc.yaml'
       Parameters:
-        Environment: 'dev'
-        SubnetPrivate: !Ref SubnetPrivate
-        SubnetPublic: !Ref SubnetPublic
+        Environment: !Ref Environment
+        SubnetPrivate: !Join [',', [!Select [ 0, !Ref SubnetPrivate ], !Select [ 1, !Ref SubnetPrivate ], !Select [ 2, !Ref SubnetPrivate ]]]
+        SubnetPublic: !If [IsProd, !Join [',', [ !Select [ 0, !Ref SubnetPublic ], !Select [ 1, !Ref SubnetPublic ],  !Select [ 2, !Ref SubnetPublic ]]], !Join [',', [ !Select [ 0, !Ref SubnetPublic ],  !Select [ 1, !Ref SubnetPublic ]]]]
         VpcCIDR: !Ref VpcCIDR
 
   ###########
@@ -147,7 +123,7 @@ Resources:
       Parameters:
         ClusterName: !Ref ClusterName
         ClusterVersion: !Ref ClusterVersion
-        SubnetIds: !GetAtt VPC.Outputs.SubnetsPrivate
+        SubnetIds: !GetAtt VPC.Outputs.SubnetsCluster
         VPCID: !GetAtt VPC.Outputs.VPC
 
   ###########
@@ -159,17 +135,11 @@ Resources:
     Properties:
       TemplateURL: !Sub 'https://granite-eks-playground.s3.amazonaws.com/nodegroup-dev.yaml'
       Parameters:
-        ControlPlaneSecurityGroup: !GetAtt Cluster.Outputs.ControlSecurityGroup
         ClusterName: !Ref ClusterName
-        InstanceTypesOverride: !Ref InstanceTypesOverride
+        ControlPlaneSecurityGroup: !GetAtt Cluster.Outputs.ControlSecurityGroup
         KeyName: !Ref KeyName
-        NodeImageId: !Ref NodeImageId
         NodeSecurityGroup: !GetAtt Cluster.Outputs.NodeSecurityGroup
         NodeGroupName: !Ref NodeGroupName
-        ASGMinSize: !Ref ASGMinSize
-        ASGDesiredSize: !Ref ASGDesiredSize
-        ASGMaxSize: !Ref ASGMaxSize
-        OnDemandBaseCapacity: !Ref OnDemandBaseCapacity
         SubnetIds: !GetAtt VPC.Outputs.SubnetsPrivate
         VPCID: !GetAtt VPC.Outputs.VPC
 
@@ -183,10 +153,6 @@ Resources:
       TemplateURL: !Sub 'https://granite-eks-playground.s3.amazonaws.com/configmap-sar.yaml'
       Parameters:
         ClusterName: !Ref ClusterName
-        LambdaRoleArn: !Ref LambdaRoleArn
-        LambdaLayerKubectlArn: !FindInMap
-          - LayerArn
-          - !Ref 'AWS::Region'
-          - kubectl
+        LambdaLayerKubectlArn: !FindInMap [RegionMap, !Ref "AWS::Region", kubelayer]
+        LambdaRoleArn: !Ref KubeAdminRole
         NodeInstanceRoleArn: !GetAtt NodeGroup.Outputs.NodeInstanceRole
-

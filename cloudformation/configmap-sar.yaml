@@ -4,6 +4,10 @@ Parameters:
     Type: String
     Default: default
 
+  FunctionName:
+    Type: String
+    Default: defaultFunc
+
   NodeInstanceRoleArn:
     Type: String
 
@@ -29,7 +33,7 @@ Resources:
         LambdaRoleArn: !Ref LambdaRoleArn
         LambdaLayerKubectlArn: !Ref LambdaLayerKubectlArn
         NodeInstanceRoleArn: !Ref NodeInstanceRoleArn
-        FunctionName: !Sub "eks-auth-update-hook-${AWS::StackName}"
+        FunctionName: !Sub "eks-auth-update-hook-${FunctionName}"
 
   UpdateCM:
     Type: Custom::UpdateConfigMap
