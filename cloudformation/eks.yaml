@@ -148,7 +148,6 @@ Resources:
   ###########
   ConfigMapLambda:
     DependsOn: NodeGroup
-    DeletionPolicy: Retain
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Sub 'https://granite-eks-playground.s3.amazonaws.com/configmap-sar.yaml'
