@@ -118,7 +118,7 @@ Resources:
           PolicyDocument:
             Version: 2012-10-17
             Statement:
-              - Resource: *
+              - Resource: "*"
                 Effect: Allow
                 Action:
                   - ec2:DescribeAccountAttributes
