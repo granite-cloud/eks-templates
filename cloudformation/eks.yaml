@@ -71,7 +71,7 @@ Parameters:
   SubnetPublic:
     Description: Comma seperated list of 2 VPC CIDR Blocks for Public Subnets (eg 10.100.2.0/24,10.100.3.0/24)
     Type: CommaDelimitedList
-    Default: '10.100.4.0/24,10.100.5.0/24'
+    Default: '10.100.4.0/24,10.100.5.0/24,10.100.6.0/24'
 
   SubnetPrivate:
     Description: Comma seperated list of 3 VPC CIDR Blocks for Private Subnets (eg 10.100.2.0/24,10.100.3.0/24)
@@ -109,7 +109,7 @@ Resources:
       Parameters:
         Environment: !Ref Environment
         SubnetPrivate: !Join [',', [!Select [ 0, !Ref SubnetPrivate ], !Select [ 1, !Ref SubnetPrivate ], !Select [ 2, !Ref SubnetPrivate ]]]
-        SubnetPublic: !If [IsProd, !Join [',', [ !Select [ 0, !Ref SubnetPublic ], !Select [ 1, !Ref SubnetPublic ],  !Select [ 2, !Ref SubnetPublic ]]], !Join [',', [ !Select [ 0, !Ref SubnetPublic ],  !Select [ 1, !Ref SubnetPublic ]]]]
+        SubnetPublic: !Join [',', [!Select [ 0, !Ref SubnetPublic ], !Select [ 1, !Ref SubnetPublic ], !Select [ 2, !Ref SubnetPublic ]]]
         VpcCIDR: !Ref VpcCIDR
 
   ###########

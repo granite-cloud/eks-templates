@@ -25,7 +25,7 @@ Resources:
     Type: AWS::Serverless::Application
     Properties:
       Location:
-        # serverless app from all regoins should be able to import this ApplicationId from 'us-east-1' across accounts.
+        # serverless app from all regions should be able to import this ApplicationId from 'us-east-1' across accounts.
         ApplicationId: arn:aws:serverlessrepo:us-east-1:903779448426:applications/eks-auth-update-hook
         SemanticVersion: 1.0.0
       Parameters:

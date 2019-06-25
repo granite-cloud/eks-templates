@@ -100,7 +100,6 @@ Resources:
   SubnetPublic3:
       Type: 'AWS::EC2::Subnet'
       DependsOn: VPC
-      Condition: IsProd
       Properties:
         VpcId: !Ref VPC
         CidrBlock: !Select [ 2, !Ref SubnetPublic ]
@@ -418,7 +417,7 @@ Outputs:
 
   SubnetsCluster:
     Description: 'All vpc subnets'
-    Value:  !If [IsProd, !Join [',', [!Ref SubnetPublic1, !Ref SubnetPublic2, !Ref SubnetPublic3, !Ref SubnetPrivate1, !Ref SubnetPrivate2, !Ref SubnetPrivate3 ]], !Join [',', [!Ref SubnetPublic1, !Ref SubnetPublic2, !Ref SubnetPrivate1, !Ref SubnetPrivate2, !Ref SubnetPrivate3]]]
+    Value: !Join [',', [!Ref SubnetPublic1, !Ref SubnetPublic2, !Ref SubnetPublic3, !Ref SubnetPrivate1, !Ref SubnetPrivate2, !Ref SubnetPrivate3 ]]
     Export:
       Name: !Sub '${AWS::StackName}-SubnetsCluster'
 
@@ -447,7 +446,6 @@ Outputs:
       Name: !Sub '${AWS::StackName}-SubnetPublic2'
 
   SubnetPublic3:
-    Condition: IsProd
     Description: Public Subnet 3
     Value: !Ref SubnetPublic3
     Export:
@@ -461,7 +459,7 @@ Outputs:
 
   SubnetsPublic:
     Description: 'Subnets public.'
-    Value:  !If [IsProd, !Join [',', [!Ref SubnetPublic1, !Ref SubnetPublic2, !Ref SubnetPublic3]], !Join [',', [!Ref SubnetPublic1, !Ref SubnetPublic2]]]
+    Value:  !Join [',', [!Ref SubnetPublic1, !Ref SubnetPublic2, !Ref SubnetPublic3]]
     Export:
       Name: !Sub '${AWS::StackName}-SubnetsPublic'
   VPC:
