@@ -32,20 +32,51 @@ module "data" {
 module "eks" {
   source       = "terraform-aws-modules/eks/aws"
   cluster_name = var.cluster
-  subnets      = var.public_subnets
-  vpc_id       = var.vpc_id
+  subnets      = module.data.all_subnets
+  vpc_id       = module.data.vpc_id
+  map_users     = var.map_users
 
   worker_groups_launch_template_mixed = [
     {
-      name                    = var.worker_name
-      override_instance_types = var.override_types
-      spot_instance_pools     = var.spot_instance_pools
-      asg_max_size            = var.max_size
-      asg_desired_capacity    = var.desired_capacity
-      kubelet_extra_args      = var.kube_args
-      public_ip               = var.pub_ip
-      # The default is to use most recent eks node ami ( data source filter from source module)
-      #ami_id                 =
+      autoscaling_enabled      = var.enable_autoscale
+      protect_from_scale_in    = var.enable_scalein_protect
+      key_name                 = var.key
+      name                     = var.worker_name
+      override_instance_types  = var.override_types
+      spot_instance_pools      = var.spot_instance_pools
+      asg_max_size             = var.max_size
+      asg_desired_capacity     = var.desired_capacity
+      kubelet_extra_args       = var.spot_kube_args
+      public_ip                = var.pub_ip
+      subnets                  = [module.data.private_subnets[0]]
     },
   ]
-}
+
+  worker_groups_launch_template = [
+    {
+      name                   = "worker-group-1"
+      autoscaling_enabled    = var.enable_autoscale
+      protect_from_scale_in  = var.enable_scalein_protect
+      key_name               = var.key
+      instance_type          = "t2.small"
+      asg_desired_capacity   = 1
+      asg_max_size           = var.max_size
+      public_ip              = false
+      kubelet_extra_args     = var.demand_kube_args
+      subnets                = [module.data.private_subnets[1]]
+   },
+   {
+      name                   = "worker-group-2"
+      autoscaling_enabled    = var.enable_autoscale
+      key_name               = var.key
+      protect_from_scale_in  = var.enable_scalein_protect
+      instance_type          = "t2.small"
+      asg_desired_capacity   = 1
+      asg_max_size           = var.max_size
+      public_ip              = false
+      kubelet_extra_args     = var.demand_kube_args
+      subnets                = [module.data.private_subnets[2]]
+   },
+  ]
+
+ }
