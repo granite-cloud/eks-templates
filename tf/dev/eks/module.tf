@@ -44,6 +44,8 @@ module "eks" {
       asg_desired_capacity    = var.desired_capacity
       kubelet_extra_args      = var.kube_args
       public_ip               = var.pub_ip
+      # The default is to use most recent eks node ami ( data source filter from source module)
+      #ami_id                 =
     },
   ]
 }

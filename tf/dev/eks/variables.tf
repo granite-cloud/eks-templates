@@ -60,6 +60,11 @@ variable "vpc_id" {
   type        = string
 }
 
+variable "vpc_name" {
+  description = "The name of the vpc to use in a data source to allow access to metadata"
+  type        = string
+}
+
 variable "worker_name" {
   description = "Name of the worker group."
   type        = string
