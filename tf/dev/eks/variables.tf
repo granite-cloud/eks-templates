@@ -38,7 +38,13 @@ variable "spot_kube_args" {
 variable "demand_kube_args" {
   description = "This string is passed directly to kubelet if set. Useful for adding labels or taints."
   type        = string
-  default     = "--kubelet-extra-args --node-labels=ondemand=yes"
+  default     = "--node-labels=ondemand=yes"
+}
+
+variable "instance_type" {
+  description = "On demand instance type."
+  type        = string
+  default     = "t3.small"
 }
 
 variable "map_users" {

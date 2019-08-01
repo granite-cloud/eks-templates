@@ -58,10 +58,10 @@ module "eks" {
       autoscaling_enabled    = var.enable_autoscale
       protect_from_scale_in  = var.enable_scalein_protect
       key_name               = var.key
-      instance_type          = "t2.small"
-      asg_desired_capacity   = 1
+      instance_type          = var.instance_type
+      asg_desired_capacity   = var.desired_capacity
       asg_max_size           = var.max_size
-      public_ip              = false
+      public_ip              = var.pub_ip
       kubelet_extra_args     = var.demand_kube_args
       subnets                = [module.data.private_subnets[1]]
    },
@@ -70,10 +70,10 @@ module "eks" {
       autoscaling_enabled    = var.enable_autoscale
       key_name               = var.key
       protect_from_scale_in  = var.enable_scalein_protect
-      instance_type          = "t2.small"
-      asg_desired_capacity   = 1
+      instance_type          = var.instance_type
+      asg_desired_capacity   = var.desired_capacity
       asg_max_size           = var.max_size
-      public_ip              = false
+      public_ip              = var.pub_ip
       kubelet_extra_args     = var.demand_kube_args
       subnets                = [module.data.private_subnets[2]]
    },
