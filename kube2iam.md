@@ -2,7 +2,9 @@
 This can be installed manually without helm but it is much more cumbersome and will require a handfull of different resources. The manual method is detailed in the second reference doc which is listed below in "Ref Docs" section. (which is what this document is heavily based on)
 
 Ref Docs:
+
 > https://www.rhythmictech.com/blog/aws/using-kube2iam-with-eks/
+
 > https://github.com/jtblin/kube2iam
 
 ### Helm
