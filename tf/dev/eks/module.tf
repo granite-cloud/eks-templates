@@ -34,7 +34,8 @@ module "eks" {
   cluster_name = var.cluster
   subnets      = module.data.all_subnets
   vpc_id       = module.data.vpc_id
-  map_users     = var.map_users
+  map_users    = var.map_users
+  map_roles    = var.map_roles
 
   worker_groups_launch_template_mixed = [
     {

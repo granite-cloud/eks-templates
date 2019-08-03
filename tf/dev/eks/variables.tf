@@ -60,6 +60,19 @@ variable "map_users" {
   ]
 }
 
+variable "map_roles" {
+  description = "Additional IAM roles to add to the aws-auth configmap."
+  type        = list(map(string))
+
+  default = [
+    {
+      role_arn = "arn:aws:iam::627177891842:role/AmazonEKSAdminRole"
+      username = "AmazonEKSAdminRole"
+      group    = "system:masters"
+    },
+  ]
+}
+
 variable "max_size" {
   description = "Max size of autoscale group"
   type        = number
