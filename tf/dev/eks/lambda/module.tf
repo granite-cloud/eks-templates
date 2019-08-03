@@ -18,7 +18,7 @@ terraform {
 }
 
 ############
-# Invoke Lambda
+# Invoke Lambda that will install cluster autoscaler
 ############
 data "aws_lambda_invocation" "install_ca" {
   function_name = "install-k8-ca"
