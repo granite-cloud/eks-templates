@@ -3,10 +3,28 @@ variable "cluster" {
   type        = string
 }
 
+variable "demand_base" {
+  description = "Absolute minimum amount of desired capacity that must be fulfilled by on-demand instances."
+  type        = number
+  default     = 2
+}
+
+variable "demand_percent_above" {
+  description = "Percentage split between on-demand and Spot instances above the base on-demand capacity."
+  type        = number
+  default     = 0
+}
+
+variable "demand_kube_args" {
+  description = "This string is passed directly to kubelet if set. Useful for adding labels or taints."
+  type        = string
+  default     = "--node-labels=ondemand=yes"
+}
+
 variable "desired_capacity" {
   description = "Desired size of autoscale group"
   type        = number
-  default     = 1
+  default     = 5
 }
 
 variable "environment" {
@@ -24,40 +42,15 @@ variable "enable_scalein_protect" {
   type        = bool
 }
 
-variable "key" {
-  description = "Name of keypair to allow access to worker nodes"
-  type        = string
-}
-
-variable "spot_kube_args" {
-  description = "This string is passed directly to kubelet if set. Useful for adding labels or taints."
-  type        = string
-  default     = "--node-labels=spotfleet=yes --register-with-taints=spotInstance=true:PreferNoSchedule"
-}
-
-variable "demand_kube_args" {
-  description = "This string is passed directly to kubelet if set. Useful for adding labels or taints."
-  type        = string
-  default     = "--node-labels=ondemand=yes"
-}
-
 variable "instance_type" {
   description = "On demand instance type."
   type        = string
   default     = "t3.small"
 }
 
-variable "map_users" {
-  description = "Additional IAM users to add to the aws-auth configmap."
-  type        = list(map(string))
-
-  default = [
-    {
-      user_arn = "arn:aws:iam::627177891842:user/playground"
-      username = "playground"
-      group    = "system:masters"
-    }
-  ]
+variable "key" {
+  description = "Name of keypair to allow access to worker nodes"
+  type        = string
 }
 
 variable "map_roles" {
@@ -73,10 +66,29 @@ variable "map_roles" {
   ]
 }
 
+variable "map_users" {
+  description = "Additional IAM users to add to the aws-auth configmap."
+  type        = list(map(string))
+
+  default = [
+    {
+      user_arn = "arn:aws:iam::627177891842:user/playground"
+      username = "playground"
+      group    = "system:masters"
+    }
+  ]
+}
+
 variable "max_size" {
   description = "Max size of autoscale group"
   type        = number
-  default     = 2
+  default     = 5
+}
+
+variable "min_size" {
+  description = "Min size of autoscale group"
+  type        = number
+  default     = 1
 }
 
 variable "override_types" {
@@ -100,8 +112,15 @@ variable "region" {
 variable "spot_instance_pools" {
   description = "Number of Spot pools per availability zone to allocate capacity"
   type        = number
-  default     = 1
+  default     = 3
 }
+
+variable "spot_kube_args" {
+  description = "This string is passed directly to kubelet if set. Useful for adding labels or taints."
+  type        = string
+  default     = "--node-labels=spotfleet=yes --register-with-taints=spotInstance=true:PreferNoSchedule"
+}
+
 
 variable "vpc_name" {
   description = "The name of the vpc to use in a data source to allow access to metadata"

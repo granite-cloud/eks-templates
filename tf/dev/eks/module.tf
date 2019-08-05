@@ -37,47 +37,53 @@ module "eks" {
   map_users    = var.map_users
   map_roles    = var.map_roles
 
+  # Worker Nodes
+  # Mixed Policy with spot and on-demand
   worker_groups_launch_template_mixed = [
     {
-      autoscaling_enabled      = var.enable_autoscale
-      protect_from_scale_in    = var.enable_scalein_protect
-      key_name                 = var.key
-      name                     = var.worker_name
-      override_instance_types  = var.override_types
-      spot_instance_pools      = var.spot_instance_pools
-      asg_max_size             = var.max_size
-      asg_desired_capacity     = var.desired_capacity
-      kubelet_extra_args       = var.spot_kube_args
-      public_ip                = var.pub_ip
-      subnets                  = [module.data.private_subnets[0]]
+      asg_min_size                             = var.min_size
+      asg_max_size                             = var.max_size
+      asg_desired_capacity                     = var.desired_capacity
+      autoscaling_enabled                      = var.enable_autoscale
+      key_name                                 = var.key
+      kubelet_extra_args                       = var.spot_kube_args
+      name                                     = var.worker_name
+      on_demand_percentage_above_base_capacity = var.demand_precent_above
+      on_demand_base_capacity                  = var.demand_base
+      override_instance_types                  = var.override_types
+      protect_from_scale_in                    = var.enable_scalein_protect
+      public_ip                                = var.pub_ip
+      spot_instance_pools                      = var.spot_instance_pools
+      subnets                                  = module.data.private_subnets
+      suspended_processes                      = ["AZRebalance"]   # not required after implementing lambda and life cycle hook
     },
   ]
 
-  worker_groups_launch_template = [
-    {
-      name                   = "worker-group-1"
-      autoscaling_enabled    = var.enable_autoscale
-      protect_from_scale_in  = var.enable_scalein_protect
-      key_name               = var.key
-      instance_type          = var.instance_type
-      asg_desired_capacity   = var.desired_capacity
-      asg_max_size           = var.max_size
-      public_ip              = var.pub_ip
-      kubelet_extra_args     = var.demand_kube_args
-      subnets                = [module.data.private_subnets[1]]
-   },
-   {
-      name                   = "worker-group-2"
-      autoscaling_enabled    = var.enable_autoscale
-      key_name               = var.key
-      protect_from_scale_in  = var.enable_scalein_protect
-      instance_type          = var.instance_type
-      asg_desired_capacity   = var.desired_capacity
-      asg_max_size           = var.max_size
-      public_ip              = var.pub_ip
-      kubelet_extra_args     = var.demand_kube_args
-      subnets                = [module.data.private_subnets[2]]
-   },
-  ]
+  #worker_groups_launch_template = [
+  #  {
+  #    name                   = "worker-group-1"
+  #    autoscaling_enabled    = var.enable_autoscale
+  #    protect_from_scale_in  = var.enable_scalein_protect
+  #    key_name               = var.key
+  #    instance_type          = var.instance_type
+  #    asg_desired_capacity   = var.desired_capacity
+  #    asg_max_size           = var.max_size
+  #    public_ip              = var.pub_ip
+  #    kubelet_extra_args     = var.demand_kube_args
+  #    subnets                = [module.data.private_subnets[1]]
+   #},
+  # {
+  #    name                   = "worker-group-2"
+  #    autoscaling_enabled    = var.enable_autoscale
+  #    key_name               = var.key
+  #    protect_from_scale_in  = var.enable_scalein_protect
+  #    instance_type          = var.instance_type
+  #    asg_desired_capacity   = var.desired_capacity
+  #    asg_max_size           = var.max_size
+  #    public_ip              = var.pub_ip
+  #    kubelet_extra_args     = var.demand_kube_args
+  #    subnets                = [module.data.private_subnets[2]]
+  # },
+  #]
 
  }
