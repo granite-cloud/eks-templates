@@ -3,28 +3,28 @@ variable "cluster" {
   type        = string
 }
 
-variable "demand_base" {
-  description = "Absolute minimum amount of desired capacity that must be fulfilled by on-demand instances."
-  type        = number
-  default     = 2
-}
-
-variable "demand_percent_above" {
-  description = "Percentage split between on-demand and Spot instances above the base on-demand capacity."
-  type        = number
-  default     = 0
-}
-
 variable "demand_kube_args" {
   description = "This string is passed directly to kubelet if set. Useful for adding labels or taints."
   type        = string
   default     = "--node-labels=ondemand=yes"
 }
 
-variable "desired_capacity" {
+variable "demand_max_size" {
+  description = "Max size of autoscale group"
+  type        = number
+  default     = 3
+}
+
+variable "demand_min_size" {
+  description = "Min size of autoscale group"
+  type        = number
+  default     = 1
+}
+
+variable "demand_desired_capacity" {
   description = "Desired size of autoscale group"
   type        = number
-  default     = 5
+  default     = 3
 }
 
 variable "environment" {
@@ -79,18 +79,6 @@ variable "map_users" {
   ]
 }
 
-variable "max_size" {
-  description = "Max size of autoscale group"
-  type        = number
-  default     = 5
-}
-
-variable "min_size" {
-  description = "Min size of autoscale group"
-  type        = number
-  default     = 1
-}
-
 variable "override_types" {
   description = "Worker node launch config override instance type used for mixed instance policy"
   type        = list
@@ -121,6 +109,23 @@ variable "spot_kube_args" {
   default     = "--node-labels=spotfleet=yes --register-with-taints=spotInstance=true:PreferNoSchedule"
 }
 
+variable "spot_max_size" {
+  description = "Max size of autoscale group"
+  type        = number
+  default     = 3
+}
+
+variable "spot_min_size" {
+  description = "Min size of autoscale group"
+  type        = number
+  default     = 1
+}
+
+variable "spot_desired_capacity" {
+  description = "Desired size of autoscale group"
+  type        = number
+  default     = 3
+}
 
 variable "vpc_name" {
   description = "The name of the vpc to use in a data source to allow access to metadata"
