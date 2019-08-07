@@ -46,7 +46,7 @@ module "eks" {
     {
       asg_min_size              = var.spot_min_size
       asg_max_size              = var.spot_max_size
-      asg_desired_capacity      = var.spotdesired_capacity
+      asg_desired_capacity      = var.spot_desired_capacity
       autoscaling_enabled       = var.enable_autoscale
       key_name                  = var.key
       kubelet_extra_args        = var.spot_kube_args
@@ -55,6 +55,7 @@ module "eks" {
       protect_from_scale_in     = var.enable_scalein_protect
       public_ip                 = var.pub_ip
       spot_instance_pools       = var.spot_instance_pools
+      spot_max_price            = "0.0109"
       subnets                   = module.data.private_subnets
       suspended_processes       = ["AZRebalance"]   # not required after implementing lambda and life cycle hook
     },
