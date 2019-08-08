@@ -133,13 +133,9 @@ data "aws_iam_policy_document" "codebuild" {
       "ecr:GetAuthorizationToken",
       "ecr:GetDownloadUrlForLayer",
       "ecr:BatchGetImage",
-      "ecr:BatchCheckLayerAvailability",
-      "ecr:PutImage",
-      "ecr:InitiateLayerUpload",
-      "ecr:UploadLayerPart",
-      "ecr:CompleteLayerUpload"
+      "ecr:BatchCheckLayerAvailability"
     ]
-    resources = ["arn:aws:ecr:us-east-1:627177891842:repository/granite-cloud"]
+    resources = ["*"]
   }
 
   statement {
@@ -151,8 +147,10 @@ data "aws_iam_policy_document" "codebuild" {
       "ecr:UploadLayerPart",
       "ecr:CompleteLayerUpload",
       "ecr:BatchCheckLayerAvailability",
-      "ecr:PutImage"
+      "ecr:PutImage",
     ]
+
+    resources = ["arn:aws:ecr:us-east-1:627177891842:repository/granite-cloud"]
   }
 
   statement {
