@@ -12,6 +12,7 @@ Ref Docs:
 
 > More Detail:
 https://jfrog.com/blog/is-your-helm-2-secure-and-scalable/
+https://rimusz.net/tillerless-helm
 
 #### Helm Install
 ```
@@ -40,9 +41,12 @@ rbac:
 
 #### Install kube2iam
 ```
-helm install --name CLUSTERNAME-kube2iam -f values.yml \
-		--kube-context=arn:aws:eks:us-east-1:012345678910:cluster/eks-cluster \
-		stable/kube2iam
+
+helm init
+# Install tillerless helm V2 plugin
+helm plugin install https://github.com/rimusz/helm-tiller
+# Install kube2iam
+helm install --name granite-kube2iam -f values.yaml stable/kube2iam
 ```
 
 #### Pod Role Example
