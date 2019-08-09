@@ -55,8 +55,18 @@ resource "aws_codebuild_project" "this" {
     }
 
     environment_variable {
+      name  = "ECR_REPO"
+      value = "${var.ecr_repo}"
+    }
+
+    environment_variable {
       name  = "CONTAINER_NAME"
       value = "granite-cloud"
+    }
+
+    environment_variable {
+      name  = "EKS_KUBECTL_ROLE_ARN"
+      value = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/AmazonEKSAdminRole"
     }
 
     environment_variable {
@@ -92,7 +102,7 @@ resource "aws_codepipeline" "this" {
       output_artifacts = ["source"]
 
       configuration = {
-        OAuthToken = "af32b1a5b3097de9b928397c412514ca999f395a"
+        OAuthToken = var.git_token
         Owner      = "granite-cloud"
         Repo       = "content-eks-deepdive-sample-api-service-go"
         Branch     = "master"

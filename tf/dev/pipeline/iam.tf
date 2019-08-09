@@ -109,7 +109,7 @@ data "aws_iam_policy_document" "codebuild" {
     resources = ["*"]
   }
 
- statement {
+  statement {
     sid    = "AllowEKSDescribe"
     effect = "Allow"
     actions = ["eks:Describe*"]
@@ -121,6 +121,13 @@ data "aws_iam_policy_document" "codebuild" {
      effect = "Allow"
      actions = ["ecr:GetAuthorizationToken"]
      resources = ["*"]
+  }
+
+  statement {
+     sid    = "AllowAssumeKubeRole"
+     effect = "Allow"
+     actions = ["sts:AssumeRole"]
+     resources = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/AmazonEKSAdminRole"]
   }
 
   statement {
@@ -142,4 +149,55 @@ data "aws_iam_policy_document" "codebuild" {
 resource "aws_iam_role_policy" "codebuild" {
   role   = "${aws_iam_role.codebuild.name}"
   policy = "${data.aws_iam_policy_document.codebuild.json}"
+}
+
+
+###########
+# Lambda IAM Role / Policies
+###########
+data "aws_iam_policy_document" "assume_by_CodeBuildLambda" {
+  statement {
+    sid     = "AllowAssumeByLambda"
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["lambda.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "CodebuildLambda" {
+  name               = "CodeBuildRole"
+  assume_role_policy = "${data.aws_iam_policy_document.assume_by_CodeBuildLambda.json}"
+}
+
+
+data "aws_iam_policy_document" "CodebuildLambda" {
+  statement {
+    sid    = "AllowIAMUpdate"
+    effect = "Allow"
+    actions = [
+      "iam:GetRole",
+      "iam:UpdateAssumeRolePolicy"
+    ]
+    resources = ["${aws_s3_bucket.this.arn}"]
+  }
+}
+
+resource "aws_iam_role_policy" "CodebuildLambda" {
+  role   = "${aws_iam_role.CodebuildLambda.name}"
+  policy = "${data.aws_iam_policy_document.CodebuildLambda.json}"
+}
+
+# Data source to allow reference of a the managed IAM policy
+data "aws_iam_policy" "LambdaExecution" {
+  arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+# Attach the aws managed Lambda policy
+resource "aws_iam_role_policy_attachment" "this" {
+    role = aws_iam_role.CodebuildLambda.name
+    policy_arn = data.aws_iam_policy.LambdaExecution.arn
 }

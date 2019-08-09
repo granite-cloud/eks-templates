@@ -10,10 +10,15 @@ variable "environment" {
   default     = "dev"
 }
 
+variable "git_token" {
+  description = "Github Token used for Source stage"
+  type        = string
+}
+
 variable "image_tag" {
   description = "The tag for the image in ecr"
   type        = string
-  default     = "1.0"
+  default     = "1.2"
 }
 
 variable "region" {
