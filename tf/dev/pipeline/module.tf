@@ -1,3 +1,9 @@
+#####################
+# CodePipeline EKS
+#####################
+
+
+
 ####################
 # Instead of inputing values in interaction, you can use direnv and .envrc file for providing configuration.
 # https://registry.terraform.io/modules/literalice/openshift/aws/0.0.2
@@ -18,14 +24,19 @@ terraform {
 }
 
 #####################
-# CodePipeline EKS
+# S3 artifact bucket
 #####################
-data "aws_caller_identity" "current" {}
+resource "aws_s3_bucket" "this" {
+  bucket        = "ecs-app-codepipeline"
+  force_destroy = true
+}
 
-
+#####################
+# CodeBuild Project
+#####################
 resource "aws_codebuild_project" "this" {
   name         = "eks-codebuild"
-  description  = "Codebuild for EKS GO app"
+  description  = "Codebuild for EKS GO test app"
   service_role = "${aws_iam_role.codebuild.arn}"
 
   artifacts {
@@ -44,16 +55,6 @@ resource "aws_codebuild_project" "this" {
     }
 
     environment_variable {
-      name  = "TASK_DEFINITION"
-      value = "arn:aws:ecs:${var.region}:${data.aws_caller_identity.current.account_id}:task-definition/${var.task_name}"
-    }
-
-    environment_variable {
-      name  = "TASK_NAME"
-      value = var.task_name
-    }
-
-    environment_variable {
       name  = "CONTAINER_NAME"
       value = "granite-cloud"
     }
@@ -62,13 +63,79 @@ resource "aws_codebuild_project" "this" {
       name  = "IMAGE_TAG"
       value = var.image_tag
     }
+ }
+ source {
+    type = "CODEPIPELINE"
+ }
+}
 
-    environment_variable {
-      name  = "CONTAINER_PORT"
-      value = var.test_port
+#####################
+# CodePipeline
+#####################
+resource "aws_codepipeline" "this" {
+  name     = "ecs-pipeline"
+  role_arn = "${aws_iam_role.pipeline.arn}"
+
+  artifact_store {
+    location = "${aws_s3_bucket.this.bucket}"
+    type     = "S3"
+  }
+
+  stage {
+    name = "Source"
+
+    action {
+      name             = "Source"
+      category         = "Source"
+      owner            = "ThirdParty"
+      provider         = "GitHub"
+      version          = "1"
+      output_artifacts = ["source"]
+
+      configuration = {
+        OAuthToken = "7cb9cfda49ab06b323d7d239e66656568cc1803f"
+        Owner      = "granite-cloud"
+        Repo       = "green-blue-ecs-example"
+        Branch     = "master"
+      }
     }
   }
-  source {
-    type = "CODEPIPELINE"
+
+  stage {
+    name = "Build"
+
+    action {
+      name             = "Build"
+      category         = "Build"
+      owner            = "AWS"
+      provider         = "CodeBuild"
+      version          = "1"
+      input_artifacts  = ["source"]
+      output_artifacts = ["build"]
+
+      configuration = {
+        ProjectName = "${aws_codebuild_project.this.name}"
+      }
+    }
+  }
+
+  stage {
+    name = "Deploy"
+
+    action {
+      name            = "Deploy"
+      category        = "Deploy"
+      owner           = "AWS"
+      provider        = "CodeDeployToECS"
+      version         = "1"
+      input_artifacts = ["build"]
+
+      configuration = {
+        ApplicationName                = "${aws_codedeploy_app.this.name}"
+        DeploymentGroupName            = "${aws_codedeploy_deployment_group.this.deployment_group_name}"
+        TaskDefinitionTemplateArtifact = "build"
+        AppSpecTemplateArtifact        = "build"
+      }
+    }
   }
 }

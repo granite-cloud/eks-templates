@@ -129,7 +129,7 @@ data "aws_iam_policy_document" "codebuild" {
       "ecr:BatchCheckLayerAvailability",
       "ecr:PutImage",
     ]
-    resources = ["arn:aws:ecr:us-east-1:627177891842:repository/granite-cloud"]
+    resources = ["${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com/${var.ecr_repo}"]
   }
 
   statement {
