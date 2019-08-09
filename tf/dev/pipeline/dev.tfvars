@@ -1,5 +1,5 @@
-cluster                = "granite-cloud"
-enable_autoscale       = true
-enable_scalein_protect = false
-environment            = "dev"
-key                    = "dev"
+ecr_repo                = "granite-cloud"
+environment             = "dev"
+git_repo                = "content-eks-deepdive-sample-api-service-go"
+git_branch              = "master"
+git_owner               = "granite-cloud"

@@ -103,9 +103,9 @@ resource "aws_codepipeline" "this" {
 
       configuration = {
         OAuthToken = var.git_token
-        Owner      = "granite-cloud"
-        Repo       = "content-eks-deepdive-sample-api-service-go"
-        Branch     = "master"
+        Owner      = var.git_owner
+        Repo       = var.git_repo
+        Branch     = var.git_branch
       }
     }
   }
