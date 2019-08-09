@@ -1,9 +1,9 @@
 #####################
-# CodeDeploy IAM Resources
+# CodeBuild / CodePipeline IAM Resources
 #####################
 
 ###########
-# Pipeline Role / Policies
+# Pipeline IAM Role / Policies
 ###########
 data "aws_iam_policy_document" "assume_by_pipeline" {
   statement {
@@ -17,7 +17,6 @@ data "aws_iam_policy_document" "assume_by_pipeline" {
     }
   }
 }
-
 
 resource "aws_iam_role" "pipeline" {
   name               = "CodePipelineRole"
@@ -50,38 +49,10 @@ data "aws_iam_policy_document" "pipeline" {
   }
 
   statement {
-    sid    = "AllowCodeDeploy"
-    effect = "Allow"
-    actions = [
-      "codedeploy:CreateDeployment",
-      "codedeploy:GetApplication",
-      "codedeploy:GetApplicationRevision",
-      "codedeploy:GetDeployment",
-      "codedeploy:GetDeploymentConfig",
-      "codedeploy:RegisterApplicationRevision",
-    ]
-
-    resources = ["*"]
-  }
-
-  statement {
-    sid    = "AllowECS"
-    effect = "Allow"
-    actions = ["ecs:*"]
-    resources = ["*"]
-  }
-
-  statement {
     sid    = "AllowPassRole"
     effect = "Allow"
     resources = ["*"]
     actions = ["iam:PassRole"]
-
-    condition {
-      test     = "StringLike"
-      values   = ["ecs-tasks.amazonaws.com"]
-      variable = "iam:PassedToService"
-    }
   }
 }
 
@@ -90,8 +61,9 @@ resource "aws_iam_role_policy" "pipeline" {
   policy = "${data.aws_iam_policy_document.pipeline.json}"
 }
 
+
 ###########
-# Build Role / Policies
+# Build IAM Role / Policies
 ###########
 data "aws_iam_policy_document" "assume_by_codebuild" {
   statement {
@@ -127,14 +99,20 @@ data "aws_iam_policy_document" "codebuild" {
   }
 
   statement {
-    sid    = "ECR"
+    sid    = "AllowLogging"
     effect = "Allow"
     actions = [
-      "ecr:GetAuthorizationToken",
-      "ecr:GetDownloadUrlForLayer",
-      "ecr:BatchGetImage",
-      "ecr:BatchCheckLayerAvailability"
+      "logs:CreateLogGroup",
+      "logs:CreateLogStream",
+      "logs:PutLogEvents",
     ]
+    resources = ["*"]
+  }
+
+ statement {
+    sid    = "AllowEKSDescribe"
+    effect = "Allow"
+    actions = ["eks:Describe*"]
     resources = ["*"]
   }
 
@@ -143,33 +121,25 @@ data "aws_iam_policy_document" "codebuild" {
     effect = "Allow"
 
     actions = [
+      "ecr:GetDownloadUrlForLayer",
+      "ecr:BatchGetImage",
       "ecr:InitiateLayerUpload",
       "ecr:UploadLayerPart",
       "ecr:CompleteLayerUpload",
       "ecr:BatchCheckLayerAvailability",
       "ecr:PutImage",
     ]
-
     resources = ["arn:aws:ecr:us-east-1:627177891842:repository/granite-cloud"]
-  }
-
-  statement {
-    sid       = "AllowECSDescribeTaskDefinition"
-    effect    = "Allow"
-    actions   = ["ecs:DescribeTaskDefinition"]
-    resources = ["*"]
   }
 
   statement {
     sid    = "AllowLogging"
     effect = "Allow"
-
     actions = [
       "logs:CreateLogGroup",
       "logs:CreateLogStream",
       "logs:PutLogEvents",
     ]
-
     resources = ["*"]
   }
 }
@@ -177,70 +147,4 @@ data "aws_iam_policy_document" "codebuild" {
 resource "aws_iam_role_policy" "codebuild" {
   role   = "${aws_iam_role.codebuild.name}"
   policy = "${data.aws_iam_policy_document.codebuild.json}"
-}
-
-
-###########
-# Deploy Role / Policies
-###########
-data "aws_iam_policy_document" "assume_by_codedeploy" {
-  statement {
-    sid     = ""
-    effect  = "Allow"
-    actions = ["sts:AssumeRole"]
-
-    principals {
-      type        = "Service"
-      identifiers = ["codedeploy.amazonaws.com"]
-    }
-  }
-}
-
-resource "aws_iam_role" "codedeploy" {
-  name               = "CodeDeployRole"
-  assume_role_policy = "${data.aws_iam_policy_document.assume_by_codedeploy.json}"
-}
-
-data "aws_iam_policy_document" "codedeploy" {
-  statement {
-    sid    = "AllowLoadBalancingAndECSModifications"
-    effect = "Allow"
-
-    actions = [
-      "ecs:CreateTaskSet",
-      "ecs:DeleteTaskSet",
-      "ecs:DescribeServices",
-      "ecs:UpdateServicePrimaryTaskSet",
-      "elasticloadbalancing:DescribeListeners",
-      "elasticloadbalancing:DescribeRules",
-      "elasticloadbalancing:DescribeTargetGroups",
-      "elasticloadbalancing:ModifyListener",
-      "elasticloadbalancing:ModifyRule",
-    ]
-
-    resources = ["*"]
-  }
-
-  statement {
-    sid    = "AllowS3"
-    effect = "Allow"
-
-    actions = ["s3:GetObject"]
-
-    resources = ["${aws_s3_bucket.this.arn}/*"]
-  }
-
-  statement {
-    sid    = "AllowPassRole"
-    effect = "Allow"
-
-    actions = ["iam:PassRole"]
-
-    resources = ["*"]
-  }
-}
-
-resource "aws_iam_role_policy" "codedeploy" {
-  role   = "${aws_iam_role.codedeploy.name}"
-  policy = "${data.aws_iam_policy_document.codedeploy.json}"
 }
