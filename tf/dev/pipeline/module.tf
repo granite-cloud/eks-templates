@@ -73,7 +73,7 @@ resource "aws_codebuild_project" "this" {
 # CodePipeline
 #####################
 resource "aws_codepipeline" "this" {
-  name     = "ecs-pipeline"
+  name     = "eks-pipeline"
   role_arn = "${aws_iam_role.pipeline.arn}"
 
   artifact_store {
@@ -83,7 +83,6 @@ resource "aws_codepipeline" "this" {
 
   stage {
     name = "Source"
-
     action {
       name             = "Source"
       category         = "Source"
@@ -93,9 +92,9 @@ resource "aws_codepipeline" "this" {
       output_artifacts = ["source"]
 
       configuration = {
-        OAuthToken = "7cb9cfda49ab06b323d7d239e66656568cc1803f"
+        OAuthToken = "af32b1a5b3097de9b928397c412514ca999f395a"
         Owner      = "granite-cloud"
-        Repo       = "green-blue-ecs-example"
+        Repo       = "content-eks-deepdive-sample-api-service-go"
         Branch     = "master"
       }
     }
@@ -103,7 +102,6 @@ resource "aws_codepipeline" "this" {
 
   stage {
     name = "Build"
-
     action {
       name             = "Build"
       category         = "Build"
@@ -115,26 +113,6 @@ resource "aws_codepipeline" "this" {
 
       configuration = {
         ProjectName = "${aws_codebuild_project.this.name}"
-      }
-    }
-  }
-
-  stage {
-    name = "Deploy"
-
-    action {
-      name            = "Deploy"
-      category        = "Deploy"
-      owner           = "AWS"
-      provider        = "CodeDeployToECS"
-      version         = "1"
-      input_artifacts = ["build"]
-
-      configuration = {
-        ApplicationName                = "${aws_codedeploy_app.this.name}"
-        DeploymentGroupName            = "${aws_codedeploy_deployment_group.this.deployment_group_name}"
-        TaskDefinitionTemplateArtifact = "build"
-        AppSpecTemplateArtifact        = "build"
       }
     }
   }

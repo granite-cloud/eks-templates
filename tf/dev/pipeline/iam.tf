@@ -117,9 +117,15 @@ data "aws_iam_policy_document" "codebuild" {
   }
 
   statement {
+     sid    = "AllowECRLogin"
+     effect = "Allow"
+     actions = ["ecr:GetAuthorizationToken"]
+     resources = ["*"]
+  }
+
+  statement {
     sid    = "AllowECRUpload"
     effect = "Allow"
-
     actions = [
       "ecr:GetDownloadUrlForLayer",
       "ecr:BatchGetImage",
@@ -129,18 +135,7 @@ data "aws_iam_policy_document" "codebuild" {
       "ecr:BatchCheckLayerAvailability",
       "ecr:PutImage",
     ]
-    resources = ["${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com/${var.ecr_repo}"]
-  }
-
-  statement {
-    sid    = "AllowLogging"
-    effect = "Allow"
-    actions = [
-      "logs:CreateLogGroup",
-      "logs:CreateLogStream",
-      "logs:PutLogEvents",
-    ]
-    resources = ["*"]
+    resources = ["arn:aws:ecr:${var.region}:${data.aws_caller_identity.current.account_id}:repository/${var.ecr_repo}"]
   }
 }
 

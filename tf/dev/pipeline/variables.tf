@@ -1,16 +1,23 @@
-variable "cluster" {
-  description = "The name of the cluster"
+variable "ecr_repo" {
+  description = "The name of the ecr rerpo"
   type        = string
+  default     = "granite-cloud"
 }
 
-variable "demand_kube_args" {
-  description = "This string is passed directly to kubelet if set. Useful for adding labels or taints."
+variable "environment" {
+  description = "The name of the environment"
   type        = string
-  default     = "--node-labels=ondemand=yes"
+  default     = "dev"
 }
 
-variable "demand_max_size" {
-  description = "Max size of autoscale group"
-  type        = number
-  default     = 3
+variable "image_tag" {
+  description = "The tag for the image in ecr"
+  type        = string
+  default     = "1.0"
+}
+
+variable "region" {
+  description = "AWS region"
+  type        = string
+  default     = "us-east-1"
 }

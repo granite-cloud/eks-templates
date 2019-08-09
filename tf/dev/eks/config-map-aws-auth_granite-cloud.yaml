@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aws-auth
+  namespace: kube-system
+data:
+  mapRoles: |
+    - rolearn: arn:aws:iam::627177891842:role/granite-cloud20190809114640077400000005
+      username: system:node:{{EC2PrivateDNSName}}
+      groups:
+        - system:bootstrappers
+        - system:nodes
+
+    - rolearn: arn:aws:iam::627177891842:role/AmazonEKSAdminRole
+      username: AmazonEKSAdminRole
+      groups:
+        - system:masters
+
+  mapUsers: |
+    - userarn: arn:aws:iam::627177891842:user/playground
+      username: playground
+      groups:
+        - system:masters
+
+  mapAccounts: |
+
