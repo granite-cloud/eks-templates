@@ -65,6 +65,11 @@ resource "aws_codebuild_project" "this" {
     }
 
     environment_variable {
+      name  = "EKS_CLUSTER_NAME"
+      value = var.cluster
+    }
+
+    environment_variable {
       name  = "EKS_KUBECTL_ROLE_ARN"
       value = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/AmazonEKSAdminRole"
     }

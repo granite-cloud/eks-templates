@@ -1,3 +1,4 @@
+cluster                 = "granite-cloud"
 ecr_repo                = "granite-cloud"
 environment             = "dev"
 git_repo                = "content-eks-deepdive-sample-api-service-go"

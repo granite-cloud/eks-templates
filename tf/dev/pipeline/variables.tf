@@ -1,3 +1,9 @@
+
+variable "cluster" {
+  description = "The name of the eks cluster"
+  type        = string
+}
+
 variable "ecr_repo" {
   description = "The name of the ecr rerpo"
   type        = string
