@@ -48,6 +48,7 @@ module "eks" {
       asg_max_size              = var.spot_max_size
       asg_desired_capacity      = var.spot_desired_capacity
       autoscaling_enabled       = var.enable_autoscale
+      ebs_optimized             = false
       key_name                  = var.key
       kubelet_extra_args        = var.spot_kube_args
       name                      = "spot"

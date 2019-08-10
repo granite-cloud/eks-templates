@@ -151,10 +151,18 @@ resource "aws_iam_role_policy" "codebuild" {
   policy = "${data.aws_iam_policy_document.codebuild.json}"
 }
 
-
 ###########
 # Lambda IAM Role / Policies
+#
+# Note: Since I am using a public module for lambda, I only need to provide
+# additional IAM policy rules here. The basics with logging and other options are
+# provided by the public module.
+# I have left the structure intact , commented out, so that there is an option to
+# use our own logic to create the lambda if desired
 ###########
+
+/*
+
 data "aws_iam_policy_document" "assume_by_CodeBuildLambda" {
   statement {
     sid     = "AllowAssumeByLambda"
@@ -173,6 +181,7 @@ resource "aws_iam_role" "CodebuildLambda" {
   assume_role_policy = "${data.aws_iam_policy_document.assume_by_CodeBuildLambda.json}"
 }
 
+*/
 
 data "aws_iam_policy_document" "CodebuildLambda" {
   statement {
@@ -186,6 +195,7 @@ data "aws_iam_policy_document" "CodebuildLambda" {
   }
 }
 
+/*
 resource "aws_iam_role_policy" "CodebuildLambda" {
   role   = "${aws_iam_role.CodebuildLambda.name}"
   policy = "${data.aws_iam_policy_document.CodebuildLambda.json}"
@@ -201,3 +211,4 @@ resource "aws_iam_role_policy_attachment" "this" {
     role = aws_iam_role.CodebuildLambda.name
     policy_arn = data.aws_iam_policy.LambdaExecution.arn
 }
+*/
