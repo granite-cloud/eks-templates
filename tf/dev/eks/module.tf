@@ -58,7 +58,7 @@ module "eks" {
       public_ip                 = var.pub_ip
       spot_instance_pools       = var.spot_instance_pools
       spot_max_price            = "0.0109"
-      subnets                   = module.data.private_subnets
+      subnets                   = data.aws_subnet.private.*.id
       suspended_processes       = ["AZRebalance"]   # not required after implementing lambda and life cycle hook
     },
   ]
