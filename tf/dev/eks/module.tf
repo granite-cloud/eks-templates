@@ -20,20 +20,21 @@ terraform {
 ############
 # Shared Data
 ############
+/*
 module "data" {
    source         = "../../data_source"
    vpc_name       = var.vpc_name
    region         = var.region
 }
-
+*/
 ######
 # EKS Cluster
 ######
 module "eks" {
   source       = "terraform-aws-modules/eks/aws"
   cluster_name = var.cluster
-  subnets      = module.data.all_subnets
-  vpc_id       = module.data.vpc_id
+  subnets      = data.aws_subnet.all.*.id
+  vpc_id       = element(tolist(data.aws_vpcs.this.ids),1)
   map_users    = var.map_users
   map_roles    = var.map_roles
 
