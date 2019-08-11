@@ -20,21 +20,20 @@ terraform {
 ############
 # Shared Data
 ############
-/*
 module "data" {
    source         = "../../data_source"
    vpc_name       = var.vpc_name
    region         = var.region
 }
-*/
+
 ######
 # EKS Cluster
 ######
 module "eks" {
   source       = "terraform-aws-modules/eks/aws"
   cluster_name = var.cluster
-  subnets      = data.aws_subnet.all.*.id
-  vpc_id       = element(tolist(data.aws_vpcs.this.ids),1)
+  subnets      = module.data.all_subnets
+  vpc_id       = module.data.vpc_id
   map_users    = var.map_users
   map_roles    = var.map_roles
 
@@ -58,7 +57,7 @@ module "eks" {
       public_ip                 = var.pub_ip
       spot_instance_pools       = var.spot_instance_pools
       spot_max_price            = "0.0109"
-      subnets                   = data.aws_subnet.private.*.id
+      subnets                   = module.data.private_subnets
       suspended_processes       = ["AZRebalance"]   # not required after implementing lambda and life cycle hook
     },
   ]
@@ -76,7 +75,7 @@ module "eks" {
       name                   = "demand"
       protect_from_scale_in  = var.enable_scalein_protect
       public_ip              = var.pub_ip
-      subnets                = data.aws_subnet.private.*.id
+      subnets                = module.data.private_subnets
       suspended_processes    = ["AZRebalance"]   # not required after implementing lambda and life cycle hook
    }
   ]
