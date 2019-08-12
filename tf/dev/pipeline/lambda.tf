@@ -12,3 +12,23 @@ module "lambda" {
     json = data.aws_iam_policy_document.CodebuildLambda.json
   }
 }
+
+
+############
+# Invoke Lambda that will install cluster autoscaler
+############
+data "aws_lambda_invocation" "update_iam_configmap" {
+  function_name = "codebuild-update-iam"
+  input = <<JSON
+{
+  "KubectlRoleName": "AmazonEKSAdminRole",
+  "CodeBuildServiceRoleArn": "${aws_iam_role.codebuild.arn}"
+}
+JSON
+
+}
+
+output "result" {
+  description = "String result of Lambda execution"
+  value       = "${data.aws_lambda_invocation.update_iam_configmap.result}"
+}
