@@ -17,15 +17,18 @@ def lambda_handler(event, context):
         raise ValueError("The key 'KubectlRoleName' is not defined in event")
       if 'CodeBuildServiceRoleArn' not in event:
         raise ValueError("The key 'CodeBuildServiceRoleArn' is not defined in event")
+
       kubectl_role_name = event['KubectlRoleName']
       build_role_arn = event['CodeBuildServiceRoleArn']
       assume = client.get_role(RoleName = kubectl_role_name)
       assume_doc = assume['Role']['AssumeRolePolicyDocument']
       roles = [ { 'Effect': 'Allow', 'Principal': { 'AWS': build_role_arn }, 'Action': 'sts:AssumeRole' } ]
+
       for statement in assume_doc['Statement']:
         if 'AWS' in statement['Principal']:
           if statement['Principal']['AWS'].startswith('arn:aws:iam:'):
             roles.append(statement)
+
       assume_doc['Statement'] = roles
       update_response = client.update_assume_role_policy(RoleName = kubectl_role_name, PolicyDocument = json.dumps(assume_doc))
 
