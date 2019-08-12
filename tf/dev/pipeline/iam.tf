@@ -126,7 +126,10 @@ data "aws_iam_policy_document" "codebuild" {
   statement {
      sid    = "AllowAssumeKubeRole"
      effect = "Allow"
-     actions = ["sts:AssumeRole"]
+     actions = [
+       "sts:AssumeRole",
+       "iam:GetRole"
+     ]
      resources = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/AmazonEKSAdminRole"]
   }
 
