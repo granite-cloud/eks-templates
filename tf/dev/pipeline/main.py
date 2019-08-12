@@ -22,7 +22,7 @@ def lambda_handler(event, context):
       build_role_arn = event['CodeBuildServiceRoleArn']
       assume = client.get_role(RoleName = kubectl_role_name)
       assume_doc = assume['Role']['AssumeRolePolicyDocument']
-      roles = [ { 'Effect': 'Allow', 'Principal': { 'AWS': build_role_arn }, 'Action': 'sts:AssumeRole' } ]
+      roles = [ { 'Effect': 'Allow', 'Principal': { 'AWS': build_role_arn, "Service": "lambda.amazonaws.com" }, 'Action': 'sts:AssumeRole' } ]
 
       for statement in assume_doc['Statement']:
         if 'AWS' in statement['Principal']:
