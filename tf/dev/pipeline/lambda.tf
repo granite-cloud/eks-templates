@@ -13,6 +13,9 @@ module "lambda" {
   }
 }
 
+############
+# Hack to allow a dependency on the lambda function which is not supported with modules.
+############
 resource "null_resource" "lambda_found" {
   triggers = {
     lambda_arn = "${module.lambda.function_arn}"
@@ -25,7 +28,7 @@ resource "null_resource" "lambda_found" {
 data "aws_lambda_invocation" "update_iam_configmap" {
   function_name = "codebuild-update-iam"
   depends_on = ["null_resource.lambda_found"]
-  
+
   input = <<JSON
 {
   "KubectlRoleName": "AmazonEKSAdminRole",
