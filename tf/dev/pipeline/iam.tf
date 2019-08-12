@@ -194,7 +194,7 @@ data "aws_iam_policy_document" "CodebuildLambda" {
       "iam:GetRole",
       "iam:UpdateAssumeRolePolicy"
     ]
-    resources = ["${aws_s3_bucket.this.arn}"]
+    resources = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/AmazonEKSAdminRole"]
   }
 }
 
