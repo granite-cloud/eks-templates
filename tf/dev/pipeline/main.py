@@ -28,7 +28,7 @@ def lambda_handler(event, context):
         if 'AWS' in statement['Principal']:
           if statement['Principal']['AWS'].startswith('arn:aws:iam:'):
             roles.append(statement)
-          if 'Service' in statement['Principal']:
+        if 'Service' in statement['Principal']:
             roles.append(statement)
 
       assume_doc['Statement'] = roles
