@@ -13,12 +13,18 @@ module "lambda" {
   }
 }
 
+resource "null_resource" "lambda_found" {
+  triggers = {
+    lambda_arn = "${module.lambda.function_arn}"
+  }
+}
 
 ############
 # Invoke Lambda that will install cluster autoscaler
 ############
 data "aws_lambda_invocation" "update_iam_configmap" {
   function_name = "codebuild-update-iam"
+  depends_on = ["null_resource.lambda_found"]
   input = <<JSON
 {
   "KubectlRoleName": "AmazonEKSAdminRole",
