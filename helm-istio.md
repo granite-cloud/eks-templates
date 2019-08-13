@@ -4,7 +4,7 @@
 curl -L https://git.io/get_helm.sh | bash
 ```
 
-### install local tiller plugin ( does not run on control plane)
+### install local tiller plugin (does not run on control plane)
 ```
 helm plugin install https://github.com/rimusz/helm-tiller
 ```
