@@ -25,3 +25,13 @@ install/kubernetes/helm/istio-init
 
 helm tiller stop
 ```
+
+### Enabled istio injection on the default namespace
+```
+kubectl label namespace default istio-injection=enabled --overwrite
+```
+
+### Make sure istio pods are running
+```
+kubectl -n istio-system get po
+```
