@@ -18,7 +18,7 @@ variable "demand_max_size" {
 variable "demand_min_size" {
   description = "Min size of autoscale group"
   type        = number
-  default     = 1
+  default     = 0
 }
 
 variable "demand_desired_capacity" {
