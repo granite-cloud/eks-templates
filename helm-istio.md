@@ -16,12 +16,17 @@ helm tiller start
 curl -L https://git.io/getLatestIstio | sh -
 cd istio-1.*
 
-helm install \
---wait \
---name istio-init \
---namespace istio-system \
--- set grafana.enabled=true
-install/kubernetes/helm/istio-init
+helm install install/kubernetes/helm/istio-init \
+  --wait \
+  --name istio-init \
+  --namespace istio-system
+
+
+helm install install/kubernetes/helm/istio \
+    --name istio \
+    --namespace istio-system \
+    --set grafana.enabled=true
+
 
 helm tiller stop
 ```

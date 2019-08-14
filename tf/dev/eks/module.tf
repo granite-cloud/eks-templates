@@ -56,7 +56,6 @@ module "eks" {
       protect_from_scale_in     = var.enable_scalein_protect
       public_ip                 = var.pub_ip
       spot_instance_pools       = var.spot_instance_pools
-      spot_max_price            = "0.0109"
       subnets                   = module.data.private_subnets
       suspended_processes       = ["AZRebalance"]   # not required after implementing lambda and life cycle hook
     },
