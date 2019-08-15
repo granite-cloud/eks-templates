@@ -35,10 +35,12 @@ module "vpc" {
   private_subnets = var.priv_subnets
   public_subnets  = var.pub_subnets
   private_subnet_tags = {
-    Tier = "Private"
+    Tier                            = "Private",
+    kubernetes.io/role/internal-elb = "1"
   }
   public_subnet_tags = {
-    Tier = "Public"
+    Tier                   = "Public",
+    kubernetes.io/role/elb = "1"
   }
 
   enable_nat_gateway = true
