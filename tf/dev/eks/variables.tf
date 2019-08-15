@@ -82,7 +82,7 @@ variable "map_users" {
 variable "override_types" {
   description = "Worker node launch config override instance type used for mixed instance policy"
   type        = list
-  default     = ["t2.small","t3.small","t3.medium"]
+  default     = ["t2.medium","t3.medium"]
 }
 
 variable "pub_ip" {
