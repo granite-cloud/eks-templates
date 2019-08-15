@@ -14,6 +14,7 @@ terraform {
   backend "s3" {
     key    = "dev/vpc/vpc.tfstate"
     bucket = "granite-terraform-state"
+    required_version = ">= 0.12"
   }
 }
 
