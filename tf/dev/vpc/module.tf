@@ -40,8 +40,8 @@ module "vpc" {
     "kubernetes.io/role/internal-elb" = "1"
   }
   public_subnet_tags = {
-    "Tier"                     = "Public",
-    "kubernetes.io/role/elb"   = "1"
+    "Tier"                   = "Public",
+    "kubernetes.io/role/elb" = "1"
   }
 
   enable_nat_gateway = true

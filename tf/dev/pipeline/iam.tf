@@ -49,10 +49,10 @@ data "aws_iam_policy_document" "pipeline" {
   }
 
   statement {
-    sid    = "AllowPassRole"
-    effect = "Allow"
+    sid       = "AllowPassRole"
+    effect    = "Allow"
     resources = ["*"]
-    actions = ["iam:PassRole"]
+    actions   = ["iam:PassRole"]
   }
 }
 
@@ -110,27 +110,27 @@ data "aws_iam_policy_document" "codebuild" {
   }
 
   statement {
-    sid    = "AllowEKSDescribe"
-    effect = "Allow"
-    actions = ["eks:Describe*"]
+    sid       = "AllowEKSDescribe"
+    effect    = "Allow"
+    actions   = ["eks:Describe*"]
     resources = ["*"]
   }
 
   statement {
-     sid    = "AllowECRLogin"
-     effect = "Allow"
-     actions = ["ecr:GetAuthorizationToken"]
-     resources = ["*"]
+    sid       = "AllowECRLogin"
+    effect    = "Allow"
+    actions   = ["ecr:GetAuthorizationToken"]
+    resources = ["*"]
   }
 
   statement {
-     sid    = "AllowAssumeKubeRole"
-     effect = "Allow"
-     actions = [
-       "sts:AssumeRole",
-       "iam:GetRole"
-     ]
-     resources = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/AmazonEKSAdminRole"]
+    sid    = "AllowAssumeKubeRole"
+    effect = "Allow"
+    actions = [
+      "sts:AssumeRole",
+      "iam:GetRole"
+    ]
+    resources = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/AmazonEKSAdminRole"]
   }
 
   statement {

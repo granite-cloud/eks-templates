@@ -79,10 +79,10 @@ resource "aws_codebuild_project" "this" {
       name  = "IMAGE_TAG"
       value = var.image_tag
     }
- }
- source {
+  }
+  source {
     type = "CODEPIPELINE"
- }
+  }
 }
 
 #####################

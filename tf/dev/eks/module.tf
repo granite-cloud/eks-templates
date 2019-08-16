@@ -22,9 +22,9 @@ terraform {
 # Shared Data
 ############
 module "data" {
-   source         = "../../data_source"
-   vpc_name       = var.vpc_name
-   region         = var.region
+  source   = "../../data_source"
+  vpc_name = var.vpc_name
+  region   = var.region
 }
 
 ######
@@ -45,38 +45,38 @@ module "eks" {
   # Mixed instance types with spot fleet
   worker_groups_launch_template_mixed = [
     {
-      asg_min_size              = var.spot_min_size
-      asg_max_size              = var.spot_max_size
-      asg_desired_capacity      = var.spot_desired_capacity
-      autoscaling_enabled       = var.enable_autoscale
-      ebs_optimized             = false
-      key_name                  = var.key
-      kubelet_extra_args        = var.spot_kube_args
-      name                      = "spot"
-      override_instance_types   = var.override_types
-      protect_from_scale_in     = var.enable_scalein_protect
-      public_ip                 = var.pub_ip
-      spot_instance_pools       = var.spot_instance_pools
-      subnets                   = module.data.private_subnets
-      suspended_processes       = ["AZRebalance"]   # not required after implementing lambda and life cycle hook
+      asg_min_size            = var.spot_min_size
+      asg_max_size            = var.spot_max_size
+      asg_desired_capacity    = var.spot_desired_capacity
+      autoscaling_enabled     = var.enable_autoscale
+      ebs_optimized           = false
+      key_name                = var.key
+      kubelet_extra_args      = var.spot_kube_args
+      name                    = "spot"
+      override_instance_types = var.override_types
+      protect_from_scale_in   = var.enable_scalein_protect
+      public_ip               = var.pub_ip
+      spot_instance_pools     = var.spot_instance_pools
+      subnets                 = module.data.private_subnets
+      suspended_processes     = ["AZRebalance"] # not required after implementing lambda and life cycle hook
     },
   ]
 
   # On demand
   worker_groups_launch_template = [
     {
-      asg_min_size           = var.demand_min_size
-      asg_desired_capacity   = var.demand_desired_capacity
-      asg_max_size           = var.demand_max_size
-      autoscaling_enabled    = var.enable_autoscale
-      instance_type          = var.instance_type
-      key_name               = var.key
-      kubelet_extra_args     = var.demand_kube_args
-      name                   = "demand"
-      protect_from_scale_in  = var.enable_scalein_protect
-      public_ip              = var.pub_ip
-      subnets                = module.data.private_subnets
-      suspended_processes    = ["AZRebalance"]   # not required after implementing lambda and life cycle hook
-   }
+      asg_min_size          = var.demand_min_size
+      asg_desired_capacity  = var.demand_desired_capacity
+      asg_max_size          = var.demand_max_size
+      autoscaling_enabled   = var.enable_autoscale
+      instance_type         = var.instance_type
+      key_name              = var.key
+      kubelet_extra_args    = var.demand_kube_args
+      name                  = "demand"
+      protect_from_scale_in = var.enable_scalein_protect
+      public_ip             = var.pub_ip
+      subnets               = module.data.private_subnets
+      suspended_processes   = ["AZRebalance"] # not required after implementing lambda and life cycle hook
+    }
   ]
- }
+}

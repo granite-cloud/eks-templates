@@ -6,7 +6,7 @@ module "lambda" {
   handler       = "main.lambda_handler"
   runtime       = "python3.6"
   timeout       = 300
-  source_path = "${path.module}/main.py"
+  source_path   = "${path.module}/main.py"
   # Attache IAM Policy
   policy = {
     json = data.aws_iam_policy_document.CodebuildLambda.json
@@ -27,7 +27,7 @@ resource "null_resource" "lambda_found" {
 ############
 data "aws_lambda_invocation" "update_iam_configmap" {
   function_name = "codebuild-update-iam"
-  depends_on = ["null_resource.lambda_found"]
+  depends_on    = ["null_resource.lambda_found"]
 
   input = <<JSON
 {
@@ -40,5 +40,5 @@ JSON
 
 output "result" {
   description = "String result of Lambda execution"
-  value       = "${data.aws_lambda_invocation.update_iam_configmap.result}"
+  value = "${data.aws_lambda_invocation.update_iam_configmap.result}"
 }
