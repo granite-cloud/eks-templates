@@ -17,10 +17,10 @@
 # could be build parameters...
 ####################
 terraform {
+  required_version = ">= 0.12"
   backend "s3" {
     key    = "dev/eks-pipeline/eks-pipeline.tfstate"
     bucket = "granite-terraform-state"
-    required_version = ">= 0.12"
   }
 }
 

@@ -11,10 +11,10 @@
 # could be build parameters...
 ####################
 terraform {
+  required_version = ">= 0.12"
   backend "s3" {
     key    = "dev/vpc/vpc.tfstate"
     bucket = "granite-terraform-state"
-    required_version = ">= 0.12"
   }
 }
 
