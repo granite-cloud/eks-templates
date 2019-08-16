@@ -82,7 +82,7 @@ variable "map_users" {
 variable "override_types" {
   description = "Worker node launch config override instance type used for mixed instance policy"
   type        = list
-  default     = ["t2.medium", "t3.medium"]
+  default     = ["t3.small", "t2.medium", "t3.medium"]
 }
 
 variable "pub_ip" {
@@ -124,7 +124,7 @@ variable "spot_min_size" {
 variable "spot_desired_capacity" {
   description = "Desired size of autoscale group"
   type        = number
-  default     = 3
+  default     = 1
 }
 
 variable "vpc_name" {
