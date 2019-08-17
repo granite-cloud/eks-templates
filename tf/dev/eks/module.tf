@@ -27,6 +27,19 @@ module "data" {
   region   = var.region
 }
 
+
+data "template_file" "user_data" {
+  template = file("${path.module}/templates/user_data.sh")
+
+  vars = {
+    ecs_config        = var.ecs_config
+    cluster_name      = var.cluster
+    env_name          = var.environment
+    custom_userdata   = var.custom_userdata
+    cloudwatch_prefix = var.cloudwatch_prefix
+  }
+}
+
 ######
 # EKS Cluster
 ######
@@ -50,6 +63,7 @@ module "eks" {
       asg_desired_capacity    = var.spot_desired_capacity
       autoscaling_enabled     = var.enable_autoscale
       ebs_optimized           = false
+      extra_ user_data        = data.template_file.user_data.rendered
       key_name                = var.key
       kubelet_extra_args      = var.spot_kube_args
       name                    = "spot"

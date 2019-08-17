@@ -20,8 +20,8 @@ terraform {
 ############
 # Invoke Lambda that will install cluster autoscaler
 ############
-data "aws_lambda_invocation" "install_ca" {
-  function_name = "install-k8-ca"
+data "aws_lambda_invocation" "bootstrap" {
+  function_name = var.function_name
 
   input = <<JSON
 {
@@ -33,5 +33,5 @@ JSON
 
 output "result" {
   description = "String result of Lambda execution"
-  value       = "${data.aws_lambda_invocation.install_ca.result}"
+  value       = "${data.aws_lambda_invocation.bootstrap.result}"
 }

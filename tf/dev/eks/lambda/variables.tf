@@ -10,6 +10,12 @@ variable "environment" {
   default     = "dev"
 }
 
+variable "function_name" {
+  description = "The name of the lambda fucntion to invoke"
+  type        = string
+  default     = "eks-bootstrap"
+}
+
 variable "instance_types" {
   description = "The name of the environment"
   type        = string
