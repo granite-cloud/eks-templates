@@ -33,5 +33,5 @@ JSON
 
 output "result" {
   description = "String result of Lambda execution"
-  value       = "${data.aws_lambda_invocation.bootstrap.result}"
+  value = "${data.aws_lambda_invocation.bootstrap.result}"
 }
