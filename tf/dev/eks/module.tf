@@ -66,7 +66,7 @@ module "eks" {
       kubelet_extra_args      = "--node-labels=spotfleet=yes,cluster=${var.cluster},environment=${var.environment}"
       name                    = "spot"
       override_instance_types = var.override_types
-      pre_user_data           = data.template_file.user_data.rendered
+      pre_userdata            = data.template_file.user_data.rendered
       protect_from_scale_in   = var.enable_scalein_protect
       public_ip               = var.pub_ip
       spot_instance_pools     = var.spot_instance_pools
@@ -86,7 +86,7 @@ module "eks" {
       key_name              = var.key
       kubelet_extra_args    = "--node-labels=ondemand=yes,cluster=${var.cluster},environment=${var.environment}"
       name                  = "demand"
-      pre_user_data         = data.template_file.user_data.rendered
+      pre_userdata          = data.template_file.user_data.rendered
       protect_from_scale_in = var.enable_scalein_protect
       public_ip             = var.pub_ip
       subnets               = module.data.private_subnets
