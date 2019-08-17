@@ -32,13 +32,6 @@ data "template_file" "user_data" {
   template = file("${path.module}/templates/user_data")
 }
 
-data "template_file" "bootstrap_args" {
-  template = file("${path.module}/templates/extrabootstrap")
-  vars = {
-
-  }
-}
-
 ######
 # EKS Cluster
 ######
