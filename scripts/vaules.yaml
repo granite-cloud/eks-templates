@@ -1,0 +1,10 @@
+aws:
+  region: "us-east-1"
+extraArgs:
+   base-role-arn: arn:aws:iam::627177891842:role/
+host:
+  iptables: true
+  interface: eni+
+rbac:
+  create: true
+
