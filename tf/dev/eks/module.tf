@@ -29,14 +29,13 @@ module "data" {
 
 
 data "template_file" "user_data" {
-  template = file("${path.module}/templates/user_data.sh")
+  template = file("${path.module}/templates/user_data")
+}
 
+data "template_file" "bootstrap_args" {
+  template = file("${path.module}/templates/extrabootstrap")
   vars = {
-    ecs_config        = var.ecs_config
-    cluster_name      = var.cluster
-    env_name          = var.environment
-    custom_userdata   = var.custom_userdata
-    cloudwatch_prefix = var.cloudwatch_prefix
+
   }
 }
 
@@ -63,11 +62,11 @@ module "eks" {
       asg_desired_capacity    = var.spot_desired_capacity
       autoscaling_enabled     = var.enable_autoscale
       ebs_optimized           = false
-      extra_ user_data        = data.template_file.user_data.rendered
       key_name                = var.key
-      kubelet_extra_args      = var.spot_kube_args
+      kubelet_extra_args      = "--node-labels=spotfleet=yes,cluster=${var.cluster},environment=${var.environment}"
       name                    = "spot"
       override_instance_types = var.override_types
+      pre_user_data           = data.template_file.user_data.rendered
       protect_from_scale_in   = var.enable_scalein_protect
       public_ip               = var.pub_ip
       spot_instance_pools     = var.spot_instance_pools
@@ -85,8 +84,9 @@ module "eks" {
       autoscaling_enabled   = var.enable_autoscale
       instance_type         = var.instance_type
       key_name              = var.key
-      kubelet_extra_args    = var.demand_kube_args
+      kubelet_extra_args    = "--node-labels=ondemand=yes,cluster=${var.cluster},environment=${var.environment}"
       name                  = "demand"
+      pre_user_data         = data.template_file.user_data.rendered
       protect_from_scale_in = var.enable_scalein_protect
       public_ip             = var.pub_ip
       subnets               = module.data.private_subnets

@@ -3,12 +3,6 @@ variable "cluster" {
   type        = string
 }
 
-variable "demand_kube_args" {
-  description = "This string is passed directly to kubelet if set. Useful for adding labels or taints."
-  type        = string
-  default     = "--node-labels=ondemand=yes"
-}
-
 variable "demand_max_size" {
   description = "Max size of autoscale group"
   type        = number
@@ -101,12 +95,6 @@ variable "spot_instance_pools" {
   description = "Number of Spot pools per availability zone to allocate capacity"
   type        = number
   default     = 3
-}
-
-variable "spot_kube_args" {
-  description = "This string is passed directly to kubelet if set. Useful for adding labels or taints."
-  type        = string
-  default     = "--node-labels=spotfleet=yes --register-with-taints=spotInstance=true:PreferNoSchedule"
 }
 
 variable "spot_max_size" {

@@ -1,3 +1,4 @@
+
 # Tune the network stack as many of the defaults are NOT optimal.
 # Note: Need to compare these to what is in the node optimized AMI by default
 
@@ -40,7 +41,7 @@ net.ipv4.neigh.default.gc_thresh3=16384
 EOF
 
 
-# Don't forget to...
+# restart
 systemctl restart systemd-sysctl.service
 
 echo "Done"
