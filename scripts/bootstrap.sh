@@ -194,6 +194,7 @@ install_metrics_server(){
     mkdir /tmp/metrics-server-$DOWNLOAD_VERSION
     tar -xzf /tmp/metrics-server-$DOWNLOAD_VERSION.tar.gz --directory /tmp/metrics-server-$DOWNLOAD_VERSION --strip-components 1
     kubectl apply -f /tmp/metrics-server-$DOWNLOAD_VERSION/deploy/1.8+/
+}
 
 install_kube2iam(){
   # Install tillerless helm V2 plugin
@@ -201,9 +202,10 @@ install_kube2iam(){
   helm tiller start
   # Install kube2iam
   helm install --name granite-kube2iam -f values.yaml stable/kube2iam
+  exit
 }
 
-
+aws eks update-kubeconfig --name $cluster_name
 install_ca
 install_metrics_server
 install_kube2iam
