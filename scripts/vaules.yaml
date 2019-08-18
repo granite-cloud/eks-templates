@@ -1,7 +1,7 @@
 aws:
   region: "us-east-1"
 extraArgs:
-   base-role-arn: arn:aws:iam::627177891842:role/
+   base-role-arn: arn:aws:iam::${account}:role/
 host:
   iptables: true
   interface: eni+
