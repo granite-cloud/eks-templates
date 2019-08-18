@@ -1,8 +1,18 @@
 #!/bin/bash
 
 
+if [ -z "$1" ]
+then
+  echo "**************************"
+  echo "Usage: `basename $0` <cluster_name>"
+  echo "**************************"
+  echo "example: ./`basename $0` test-cluster"
+  exit 0
+fi
+
 # Input
 cluster_name=$1
+account=$(aws sts get-caller-identity | jq -r  .Account)
 
 
 ###################
@@ -201,7 +211,18 @@ install_kube2iam(){
   helm plugin install https://github.com/rimusz/helm-tiller
   helm tiller start
   # Install kube2iam
-  helm install --name granite-kube2iam -f values.yaml stable/kube2iam
+    cat << EOF | helm install --name granite-kube2iam -f -
+---
+aws:
+region: "us-east-1"
+extraArgs:
+   base-role-arn: arn:aws:iam::$account:role/
+host:
+  iptables: true
+  interface: eni+
+rbac:
+  create: true
+EOF
   exit
 }
 
