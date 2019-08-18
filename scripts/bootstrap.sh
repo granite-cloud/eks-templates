@@ -211,7 +211,7 @@ install_kube2iam(){
   helm plugin install https://github.com/rimusz/helm-tiller
   helm tiller start
   # Install kube2iam
-    cat << EOF | helm install --name granite-kube2iam -f -
+  cat << EOF | helm install stable/kube2iam --name granite-kube2iam  -f -
 ---
 aws:
 region: "us-east-1"
@@ -222,8 +222,7 @@ host:
   interface: eni+
 rbac:
   create: true
-EOF
-  exit
+EOF 
 }
 
 aws eks update-kubeconfig --name $cluster_name
