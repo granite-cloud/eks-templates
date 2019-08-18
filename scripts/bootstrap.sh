@@ -3,7 +3,7 @@
 
 # Input
 cluster_name=$1
-instance_types=$2
+
 
 ###################
 # Install the k8s Cluster Autoscaler
@@ -145,9 +145,9 @@ spec:
                 - key: beta.kubernetes.io/instance-type
                   operator: In
                   values:
-                  - $TYPE1
-                  - $TYPE2
-                  - $TYPE3
+                  - t2.small
+                  - t3.small
+                  - t3.medium
         containers:
           - image: k8s.gcr.io/cluster-autoscaler:v1.12.3
             name: cluster-autoscaler
@@ -165,7 +165,7 @@ spec:
               - --cloud-provider=aws
               - --skip-nodes-with-local-storage=false
               - --expander=least-waste
-              - --node-group-auto-discovery=asg:tag=k8s.io/cluster-autoscaler/enabled,k8s.io/cluster-autoscaler/$CLUSTER_NAME
+              - --node-group-auto-discovery=asg:tag=k8s.io/cluster-autoscaler/enabled,k8s.io/cluster-autoscaler/$cluster_name
               - --balance-similar-node-groups
               - --scale-down-unneeded-time=2m
             volumeMounts:
