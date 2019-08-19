@@ -45,7 +45,7 @@ helm install --name granite-kube2iam -f values.yaml stable/kube2iam
 
 or
 
-scripts/bootstrap.sh <cluster_name>   # will install cluster autoscaler and metrics server
+scripts/bootstrap.sh <cluster_name> <aws_region>   # will install cluster autoscaler and metrics server
 
 ```
 
