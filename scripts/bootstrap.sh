@@ -1,12 +1,12 @@
 #!/bin/bash
 
 
-if [ -z "$1" ]
+if [ -z "$1" ] || [ -z "$2" ]
 then
   echo "**************************"
-  echo "Usage: `basename $0` <cluster_name>"
+  echo "Usage: `basename $0` <cluster_name> <aws_region>"
   echo "**************************"
-  echo "example: ./`basename $0` test-cluster"
+  echo "example: ./`basename $0` test-cluster us-east-1"
   exit 0
 fi
 
@@ -213,7 +213,7 @@ install_kube2iam(){
   cat << EOF | helm install stable/kube2iam --name granite-kube2iam  -f -
 ---
 aws:
- region: "us-east-1"
+ region: "$region"
 extraArgs:
    base-role-arn: arn:aws:iam::$account:role/
 host:
