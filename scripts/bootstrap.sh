@@ -207,14 +207,11 @@ install_metrics_server(){
 }
 
 install_kube2iam(){
-  # Install tillerless helm V2 plugin
-  helm plugin install https://github.com/rimusz/helm-tiller
-  helm tiller start
-  # Install kube2iam
+  echo "installing kube2iam....."
   cat << EOF | helm install stable/kube2iam --name granite-kube2iam  -f -
 ---
 aws:
-region: "us-east-1"
+ region: "us-east-1"
 extraArgs:
    base-role-arn: arn:aws:iam::$account:role/
 host:
@@ -222,7 +219,8 @@ host:
   interface: eni+
 rbac:
   create: true
-EOF 
+
+EOF
 }
 
 aws eks update-kubeconfig --name $cluster_name
