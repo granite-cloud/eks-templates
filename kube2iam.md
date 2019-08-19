@@ -41,12 +41,12 @@ rbac:
 
 #### Install kube2iam
 ```
-
-helm init
-# Install tillerless helm V2 plugin
-helm plugin install https://github.com/rimusz/helm-tiller
-# Install kube2iam
 helm install --name granite-kube2iam -f values.yaml stable/kube2iam
+
+or
+
+scripts/bootstrap.sh <cluster_name>   # will install cluster autoscaler and metrics server
+
 ```
 
 #### Pod Role Example
