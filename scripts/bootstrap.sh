@@ -205,7 +205,7 @@ install_metrics_server(){
     tar -xzf /tmp/metrics-server-$DOWNLOAD_VERSION.tar.gz --directory /tmp/metrics-server-$DOWNLOAD_VERSION --strip-components 1
     kubectl apply -f /tmp/metrics-server-$DOWNLOAD_VERSION/deploy/1.8+/
     # patch the deployment to make sure InternIP is used for kubelet or there will be hostname resolution errors for internal names
-    kubectl patch deployment metrics-server -n kube-system  --patch "$(cat metrics-server-path.yaml)"
+    kubectl patch deployment metrics-server -n kube-system  --patch "$(cat metrics-server-patch.yaml)"
 }
 
 install_kube2iam(){
