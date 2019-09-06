@@ -26,7 +26,7 @@
 
 ## HOWTO
 
-Create a `AmazonEKSAdminRole` IAM Role manually and we will use thie role to 
+Create a `AmazonEKSAdminRole` IAM Role manually and we will use thie role to
 1) deploy the cloudformaiton stacks
 2) execute the Lambda function as custom resource to help you configure the `aws-auth` ConfigMap so the nodes in the nodegroup can register themselves to the control plane.
 3) `kubecl` will call Amazon EKS control plane as this IAM role for RBAC Auth.
@@ -70,14 +70,14 @@ Optionally, you can leave the `Makefile` untouched, and create a `custom.mk` fil
 CLUSTER_STACK_NAME ?= eksdemo
 SSH_KEY_NAME ?= 'aws-pahud'
 EKS_ADMIN_ROLE ?= arn:aws:iam::903779448426:role/AmazonEKSAdminRole
-REGION ?= us-west-2 
-VPC_ID ?= vpc-c7635ea0 
+REGION ?= us-west-2
+VPC_ID ?= vpc-c7635ea0
 SUBNET1 ?= subnet-0f247a2b289129708
 SUBNET2 ?= subnet-0da5823de42ae81f9
 SUBNET3 ?= subnet-02858661648d4840a
 InstanceTypesOverride ?= 't3.medium,m4.large,m5.large'
 OnDemandBaseCapacity ?= 2
-NodeAutoScalingGroupMinSize ?= 10 
+NodeAutoScalingGroupMinSize ?= 10
 NodeAutoScalingGroupDesiredSize ?= 12
 NodeAutoScalingGroupMaxSize ?= 20
 ```
@@ -129,7 +129,7 @@ Behind the scene, a cloudformation stack with `5` nested stacks will be created:
 
 # Test and Validate
 
-Now cloudformation stack is created. The Amazon EKS cluster will only be able to administratered via `kubectl` as `AmazonEKSAdminRole` IAM role. However, according to our 
+Now cloudformation stack is created. The Amazon EKS cluster will only be able to administratered via `kubectl` as `AmazonEKSAdminRole` IAM role. However, according to our
 [assume-role-policy.json](./assume-role-policy.json), only the following identities are allowed to assume to this role:
 
 1. **Lambda service**(`lambda.amazonaws.com`)
@@ -141,8 +141,8 @@ Let's check our current identity
 ```
 $ aws sts get-caller-identity
 {
-    "Account": "903779448426", 
-    "UserId": "AIDAJQENSMB5TSS54VEB2", 
+    "Account": "903779448426",
+    "UserId": "AIDAJQENSMB5TSS54VEB2",
     "Arn": "arn:aws:iam::903779448426:user/pahud"
 }
 ```
@@ -181,7 +181,7 @@ Let's edit `assume-role-policy.json` file from the local repo:
 
 ```
 
-This will allow all IAM `user` from AWS Account ID `903779448426` be able to assume this role. 
+This will allow all IAM `user` from AWS Account ID `903779448426` be able to assume this role.
 
 If you prefer to restrict to a single IAM user, for example `pahud`:
 
@@ -191,7 +191,7 @@ If you prefer to restrict to a single IAM user, for example `pahud`:
 }
 ```
 
-And of course you can specify multiple IAM users in `Principal` 
+And of course you can specify multiple IAM users in `Principal`
 ```
 "Principal": {
     "AWS": "arn:aws:iam::903779448426:user/pahud",
@@ -211,13 +211,13 @@ Try assume this role with `aws assume-role` like this
 $ aws sts assume-role --role-arn arn:aws:iam::903779448426:role/AmazonEKSAdminRole --role-session-name test
 {
     "AssumedRoleUser": {
-        "AssumedRoleId": "AROAJCL4US4TE3MXZM272:test", 
+        "AssumedRoleId": "AROAJCL4US4TE3MXZM272:test",
         "Arn": "arn:aws:sts::903779448426:assumed-role/AmazonEKSAdminRole/test"
-    }, 
+    },
     "Credentials": {
-        "SecretAccessKey": "...", 
-        "SessionToken": "...", 
-        "Expiration": "2019-02-20T08:19:58Z", 
+        "SecretAccessKey": "...",
+        "SessionToken": "...",
+        "Expiration": "2019-02-20T08:19:58Z",
         "AccessKeyId": "..."
     }
 }
@@ -236,16 +236,16 @@ For example, in Linux
 ```
 $ wget https://amazon-eks.s3-us-west-2.amazonaws.com/1.11.5/2018-12-06/bin/linux/amd64/aws-iam-authenticator
 $ wget https://amazon-eks.s3-us-west-2.amazonaws.com/1.11.5/2018-12-06/bin/linux/amd64/kubectl
-$ chmod +x kubectl aws-iam-authenticator 
+$ chmod +x kubectl aws-iam-authenticator
 $ sudo mv aws-iam-authenticator /usr/local/bin/
 $ sudo mv kubectl /usr/local/bin/
 ```
-check Amazon EKS document about [install kubectl](https://docs.aws.amazon.com/eks/latest/userguide/install-kubectl.html#install-kubectl-linux) and [getting started](https://docs.aws.amazon.com/eks/latest/userguide/getting-started.html) and 
+check Amazon EKS document about [install kubectl](https://docs.aws.amazon.com/eks/latest/userguide/install-kubectl.html#install-kubectl-linux) and [getting started](https://docs.aws.amazon.com/eks/latest/userguide/getting-started.html) and
 download the two binaries of latest version.
 
 # generate or update kubeconfig
 
-run `update-kubeconfig` 
+run `update-kubeconfig`
 
 ```
 $ aws --region ap-northeast-1 eks update-kubeconfig --name eksdemo --role-arn arn:aws:iam::903779448426:role/AmazonEKSAdminRole
@@ -269,11 +269,11 @@ ip-100-64-70-247.ap-northeast-1.compute.internal    Ready     <none>    4m      
 
 Your cluster is ready now.
 
-Under the hood, before sending the request to Kubernetes API, the `kubectl` command will invoke `aws-iam-authenticator token -i eksdemo -r {AmazonEKSAdminRole_Arn}`, attaching the generated `token` in the request header to authenticate Amazon EKS 
+Under the hood, before sending the request to Kubernetes API, the `kubectl` command will invoke `aws-iam-authenticator token -i eksdemo -r {AmazonEKSAdminRole_Arn}`, attaching the generated `token` in the request header to authenticate Amazon EKS
 control plane. Read [Managing Cluster Authentication](https://docs.aws.amazon.com/eks/latest/userguide/managing-auth.html) for more details.
 
 
-# update the cluster 
+# update the cluster
 
 update from `1.10` to `1.11`
 ```
